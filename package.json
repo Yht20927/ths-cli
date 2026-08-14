@@ -1,0 +1,33 @@
+{
+  "name": "tonghuashun-cli",
+  "version": "1.0.0",
+  "description": "同花顺 CLI — Bridge Framework（油猴脚本 + WebSocket），搜索股票 + 6 周期 K 线，支持 CSV/JSON 导出",
+  "license": "MIT",
+  "author": "Yht20927",
+  "main": "cli.js",
+  "bin": {
+    "ths": "./cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "server": "node server.js",
+    "bridge": "scripts/bridge.sh",
+    "help": "node cli.js help",
+    "search": "node cli.js search",
+    "quote": "node cli.js quote",
+    "kline": "node cli.js kline",
+    "trend": "node cli.js trend",
+    "turnover": "node cli.js turnover",
+    "analyze": "node cli.js analyze",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+logs/
+*.pid
+*.log
+*.bak
+
+# 安全：不提交含密钥的配置文件
+config.json
+
+# 抓包样本（含真实数据,不入库）
+data/
