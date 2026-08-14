@@ -7,7 +7,12 @@
 - **K 线**:日 / 周 / 月 / 季 / 60分 / 120分,支持前/后复权、CSV/JSON 导出
 - **分时**:每分钟价格/成交量/成交额
 - **大盘成交额**:分时 / 日K 两个粒度
-- **技术分析**:区间统计 + MA/MACD/KDJ/RSI/BOLL(纯本地计算,`--json` 可导出完整指标序列)
+- **技术分析**:区间统计 + MA/MACD/KDJ/RSI/BOLL/ATR/ADX/CCI/WR/MFI/OBV/SAR/ROC/VWAP,
+  叠加 **K线形态识别**(锤子/吞没/早晨之星/红三兵…)、**支撑压力位**、**多因子综合评分**(0-100 看多/观望/看空)
+- **选股扫描**:11 种条件(金叉/放量突破/均线多头/超卖…)批量筛自选股或代码池
+- **自选股**:本地管理,无需登录
+- **策略回测**:ma-cross / rsi / macd / buy-hold,输出收益/回撤/胜率/盈亏比/夏普
+- **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 
 ```
 ┌──────────┐    /api/call    ┌──────────────┐   WebSocket/poll   ┌────────────────────┐
@@ -45,8 +50,13 @@ ths kline <code> [--period day|week|month|quarter|60min|120min]
        [--json|--csv]           获取 K 线
 ths trend <code> [--count N] [--market N] [--json|--csv]   分时数据
 ths turnover [--period minute|day] [--count N] [--json]    大盘成交额
-ths analyze <code> [--period ...] [--count 250] [--market N] [--json]
-                                                           K线技术分析
+ths analyze <code> [--period ...] [--count 250] [--market N] [--json] [--refresh]
+                                                     K线技术分析(全指标+形态+支撑压力+评分)
+ths scan --criterion macd-golden [--pool watchlist|--codes a,b]
+       [--min-score N] [--delay MS] [--refresh] [--json]   选股扫描
+ths watchlist add|remove|list|clear <code> [--name X] [--json]   自选股
+ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
+       [--fast N] [--slow N] [--count 500] [--fee 0.0005] [--json]   策略回测
 ths help                         帮助
 ```
 
@@ -63,6 +73,16 @@ ths trend 600519 --count 30                          # 分时
 ths turnover --period day --count 5                  # 大盘成交额(日)
 ths analyze 600519 --period day --count 250          # 技术分析
 ths analyze 600519 --json                            # 完整指标序列(JSON)
+ths analyze 600519 --refresh                         # 强制刷新本地缓存
+ths watchlist add 600519 --name 贵州茅台             # 加入自选股
+ths watchlist add 000001                             # 加入自选股(平安银行)
+ths scan --pool watchlist --criterion macd-golden    # 自选股里筛 MACD 金叉
+ths scan --codes 600519,000001 --criterion ma-bull,volume-break --min-score 60
+                                                     # 多条件 + 最低评分
+ths scan --pool watchlist --criterion rsi-oversold --delay 500 --json
+                                                     # 超卖票(JSON,节流500ms/只)
+ths backtest 600519 --strategy ma-cross --fast 5 --slow 20
+ths backtest 000001 --strategy rsi --count 500 --json
 ```
 
 ## 参数说明
@@ -75,6 +95,31 @@ ths analyze 600519 --json                            # 完整指标序列(JSON)
 | `--market` | 市场码:`17`=沪 `33`=深 `48`=同花顺板块指数。6 开头自动→17,0/3 开头自动→33,88 开头自动→48;4/8 开头(北交所等)必须手动指定 |
 | `--json` | 输出原始 JSON |
 | `--csv` | 输出 CSV(`--json` 优先) |
+
+## 选股条件一览
+
+`ths scan --criterion a,b,c` 支持的条件:
+
+| 条件 | 含义 | 可调参数 |
+|---|---|---|
+| `ma-bull` | 均线多头排列(MA5>MA10>MA20>MA60) | |
+| `ma-cross-up` | MA5 上穿 MA20 | `--lookback N` |
+| `macd-golden` | MACD 柱由负转正(金叉) | `--lookback N` |
+| `macd-bull` | DIF>0 且柱>0 | |
+| `rsi-oversold` / `rsi-overbought` | RSI6 超卖/超买 | `--rsi-level N` |
+| `kdj-golden` | KDJ 金叉 | `--lookback N` |
+| `volume-break` | 放量突破 N 日新高 | `--break-n N` `--vol-ratio X` |
+| `atr-range` | 波动率区间(默认 1-6%) | `--atr-min X` `--atr-max X` |
+| `pattern` | 最近 5 根出现看多形态 | `--lookback N` |
+| `score-gt` | 综合评分 ≥ N | `--score N` |
+
+## 本地缓存
+
+K 线数据缓存于 `data/cache/ths.json`(gitignore),避免重复打同花顺接口触发风控。
+
+- TTL:日/周/月/季 10 分钟,60/120 分钟 1 分钟,可在 `config.json` 的 `cache.ttlMinutes` 覆盖
+- `analyze` / `scan` / `backtest` 默认走缓存,`--refresh` 强制刷新
+- 自选股存于同一文件;`watchlist clear` 清空自选与 K 线缓存
 
 ## 架构
 
@@ -97,7 +142,11 @@ Bridge Server(`lib/server/*`)提供 `/api/health` `/api/status` `/api/call` `/ap
     "port": 19422,
     "token": "",            // 留空则 server 自动生成并写回
     "requestTimeout": 30000
-  }
+  },
+  "cache": {                // K线缓存 TTL(分钟),可覆盖
+    "ttlMinutes": { "day": 10, "week": 30, "month": 60, "quarter": 60, "60min": 1, "120min": 1 }
+  },
+  "scan": { "delayMs": 500 }   // 扫描节流,防 WAF(可被 --delay 覆盖)
 }
 ```
 

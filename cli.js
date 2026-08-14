@@ -6,6 +6,7 @@
 
 const { AuditLogger } = require('./lib/audit');
 const { BridgeClient } = require('./lib/client/bridge-client');
+const { KlineCache } = require('./lib/cache');
 const { safeSerialize } = require('./lib/shared/serialize');
 const commands = require('./lib/commands');
 const { SITE } = require('./lib/commands/helpers');
@@ -23,6 +24,9 @@ const bridge = new BridgeClient({
 
 // ── 审计日志 ──
 const audit = new AuditLogger();
+
+// ── 本地缓存（K线 + 自选股，data/cache/ths.json）──
+const cache = new KlineCache();
 
 // ═══════════════════════════════════════════════════════════
 // Bridge 通信（通过 BridgeClient）
@@ -50,7 +54,7 @@ async function loggedCall(endpoint, params, expression) {
 // 命令上下文（注入到各命令模块）
 // ═══════════════════════════════════════════════════════════
 
-const ctx = { bridge, audit, config, bridgeCall, loggedCall };
+const ctx = { bridge, audit, config, cache, bridgeCall, loggedCall };
 
 // ═══════════════════════════════════════════════════════════
 // 帮助
@@ -68,7 +72,16 @@ function printHelp() {
   ths trend <code> [--count N] [--market N] [--json|--csv]   分时数据
   ths turnover [--period minute|day] [--count N] [--json]    大盘成交额
   ths analyze <code> [--period day|week|...] [--count 250] [--market N] [--json]
-                                                             K线技术分析（均线/MACD/KDJ/RSI/BOLL）
+                                                 K线分析：均线/MACD/KDJ/RSI/BOLL/ATR/ADX/CCI/WR/
+                                                 MFI/OBV/SAR + 形态 + 支撑压力 + 综合评分
+  ths scan --criterion ma-bull,macd-golden [--pool watchlist|--codes a,b]
+       [--min-score N] [--lookback N] [--delay MS] [--refresh] [--json]
+                                                 选股扫描（11 种条件）
+  ths watchlist add|remove|list|clear <code> [--name X] [--json]
+                                                 自选股管理（本地缓存）
+  ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
+       [--fast N] [--slow N] [--period day] [--count 500] [--fee 0.0005] [--json]
+                                                 策略回测（收益/回撤/胜率/夏普）
 
 通用选项:
   --json    输出原始 JSON（machine-readable）

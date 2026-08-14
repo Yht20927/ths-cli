@@ -7,5 +7,18 @@
     "heartbeatTimeout": 10000,
     "heartbeatMaxFailures": 3,
     "requestTimeout": 30000
+  },
+  "cache": {
+    "ttlMinutes": {
+      "day": 10,
+      "week": 30,
+      "month": 60,
+      "quarter": 60,
+      "60min": 1,
+      "120min": 1
+    }
+  },
+  "scan": {
+    "delayMs": 500
   }
 }
