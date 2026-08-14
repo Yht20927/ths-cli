@@ -8,7 +8,7 @@
 // @connect      127.0.0.1:*
 // @connect      localhost
 // @connect      localhost:*
-// @version      1.0.0
+// @version      1.1.0
 // ==/UserScript==
 
 // ═══════════════════════════════════════════════════════════
@@ -262,20 +262,39 @@ window.__ths = {
     return data.data || null;
   },
 
-  // 实时行情快照：code 证券代码 / market 市场码（同 kline 的 17/33/48）
+  // 实时行情快照字段：
+  // 基础 6价/7开/8高/9低/10昨收/13量(股)/19额(元) | 69涨停/70跌停
+  // 扩展 199112涨跌幅/264648涨跌额/3153PE/592920PB/3475914总市值/3541450流通市值/1968584换手率/1771976量比
+  QUOTE_FIELDS: ['6', '7', '8', '9', '10', '13', '19', '69', '70', '199112', '264648', '3153', '592920', '3475914', '3541450', '1968584', '1771976'],
+
+  // 批量实时行情：items = [{code, market}]，按 market 分组一次请求多只
+  quotes: async function (items) {
+    if (!items || !items.length) return [];
+    var byMarket = {};
+    items.forEach(function (it) { var m = String(it.market); (byMarket[m] = byMarket[m] || []).push(it.code); });
+    var groups = Object.keys(byMarket).map(function (m) { return { codes: byMarket[m], market: m }; });
+    var all = [];
+    for (var i = 0; i < groups.length; i++) {
+      var data = await thsFetchJson('quotes', THS.QUOTA + '/multi_last_snapshot', {
+        method: 'POST',
+        headers: THS_HEADERS(),
+        body: JSON.stringify({
+          code_list: [groups[i]],
+          trade_class: 'intraday',
+          data_fields: this.QUOTE_FIELDS,
+          lang: 'zh_cn',
+          gpid: 2,
+        }),
+      });
+      all = all.concat(data.data.quote_data || []);
+    }
+    return all;
+  },
+
+  // 单只实时行情快照（兼容）
   quote: async function (code, market) {
-    var data = await thsFetchJson('quote', THS.QUOTA + '/multi_last_snapshot', {
-      method: 'POST',
-      headers: THS_HEADERS(),
-      body: JSON.stringify({
-        code_list: [{ codes: [code], market: String(market) }],
-        trade_class: 'intraday',
-        data_fields: ['6', '7', '8', '9', '10', '18', '19', '199112', '264648', '13'],
-        lang: 'zh_cn',
-        gpid: 2,
-      }),
-    });
-    return data.data.quote_data[0] || null;
+    var arr = await this.quotes([{ code: code, market: market }]);
+    return arr[0] || null;
   },
 
   // 分时：code / market / count 限制返回条数（0=全部）

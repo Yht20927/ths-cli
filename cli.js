@@ -65,20 +65,23 @@ function printHelp() {
 同花顺 CLI（Bridge Framework）
 
   ths search <keyword> [--json]               搜索股票（代码/名称/拼音）
-  ths quote <code> [--market N] [--json]      实时行情快照
+  ths quote <code> [--market N] [--json]      实时行情快照（含换手/量比/PE/市值/涨跌停）
+  ths quotes [--pool watchlist|--codes a,b] [--json]   批量行情（一次多只）
   ths kline <code> [--period day|week|month|quarter|60min|120min]
        [--count N] [--adjust forward|backward|none] [--market N]
        [--json|--csv]                         获取 K 线
   ths trend <code> [--count N] [--market N] [--json|--csv]   分时数据
   ths turnover [--period minute|day] [--count N] [--json]    大盘成交额
-  ths analyze <code> [--period day|week|...] [--count 250] [--market N] [--json]
+  ths analyze <code> [--period day|week|...] [--count 250] [--market N] [--json] [--compact] [--refresh]
                                                  K线分析：均线/MACD/KDJ/RSI/BOLL/ATR/ADX/CCI/WR/
-                                                 MFI/OBV/SAR + 形态 + 支撑压力 + 综合评分
-  ths scan --criterion ma-bull,macd-golden [--pool watchlist|--codes a,b]
-       [--min-score N] [--lookback N] [--delay MS] [--refresh] [--json]
+                                                 MFI/OBV/SAR + 形态 + 支撑压力 + 评分 + 估值
+  ths compare [--codes a,b,c | --pool watchlist] [--period day] [--count 250] [--json]
+                                                 跨股横向对比（紧凑摘要）
+  ths scan --criterion ma-bull,macd-golden [--pool watchlist|--codes a,b|--universe 关键词]
+       [--min-score N] [--lookback N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json]
                                                  选股扫描（11 种条件）
-  ths watchlist add|remove|list|clear <code> [--name X] [--json]
-                                                 自选股管理（本地缓存）
+  ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]
+                                                 自选股管理 + 实时价格总览
   ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
        [--fast N] [--slow N] [--period day] [--count 500] [--fee 0.0005] [--json]
                                                  策略回测（收益/回撤/胜率/夏普）

@@ -59,6 +59,27 @@ describe('KlineCache 基础', () => {
   });
 });
 
+describe('名称缓存', () => {
+  it('getName/setName 往返并持久化', () => {
+    const c1 = new KlineCache(tmpFile);
+    c1.setName('600519', '贵州茅台');
+    expect(c1.getName('600519')).toBe('贵州茅台');
+    const c2 = new KlineCache(tmpFile);
+    expect(c2.getName('600519')).toBe('贵州茅台');
+  });
+
+  it('clearAll 清空 K线/名称/自选股', () => {
+    const c = new KlineCache(tmpFile);
+    c.setKline('k', '17', bars, 3);
+    c.setName('600519', '贵州茅台');
+    c.watchlistAdd({ code: '600519', name: '贵州茅台' });
+    c.clearAll();
+    expect(c.getKline('k')).toBeNull();
+    expect(c.getName('600519')).toBeNull();
+    expect(c.watchlistList()).toHaveLength(0);
+  });
+});
+
 describe('自选股', () => {
   it('add / list / remove', () => {
     const c = new KlineCache(tmpFile);

@@ -3,16 +3,19 @@
 同花顺(10jqka)行情命令行工具,基于 **Bridge Framework**(油猴脚本 + 本地 Bridge Server + CLI),与 [douyin-cli](https://github.com/Yht20927/douyin-cli) / boss-cli 同一套架构。
 
 - **搜索股票**:中文名 / 代码 / 拼音缩写联想
-- **实时行情**:最新价/涨跌/开高低收/量额快照
+- **实时行情**:最新价/涨跌/开高低收/量额 + **换手率/量比/市盈率/市净率/总市值/涨跌停价**(需油猴 v1.1.0)
+- **批量行情**:一次接口请求多只股票(`ths quotes` / `ths watchlist prices`)
 - **K 线**:日 / 周 / 月 / 季 / 60分 / 120分,支持前/后复权、CSV/JSON 导出
 - **分时**:每分钟价格/成交量/成交额
 - **大盘成交额**:分时 / 日K 两个粒度
 - **技术分析**:区间统计 + MA/MACD/KDJ/RSI/BOLL/ATR/ADX/CCI/WR/MFI/OBV/SAR/ROC/VWAP,
   叠加 **K线形态识别**(锤子/吞没/早晨之星/红三兵…)、**支撑压力位**、**多因子综合评分**(0-100 看多/观望/看空)
-- **选股扫描**:11 种条件(金叉/放量突破/均线多头/超卖…)批量筛自选股或代码池
-- **自选股**:本地管理,无需登录
+- **跨股对比**:`ths compare` 一次横向对比多只的评分/信号/形态/支撑压力
+- **选股扫描**:11 种条件(金叉/放量突破/均线多头/超卖…),池来源支持自选股/代码/`--universe 关键词`
+- **自选股**:本地管理,无需登录,`prices` 实时总览
 - **策略回测**:ma-cross / rsi / macd / buy-hold,输出收益/回撤/胜率/盈亏比/夏普
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
+- **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
 ```
 ┌──────────┐    /api/call    ┌──────────────┐   WebSocket/poll   ┌────────────────────┐
@@ -44,21 +47,26 @@ node cli.js kline 600519 --period day --count 20
 
 ```
 ths search <keyword> [--json]   搜索股票(代码/名称/拼音)
-ths quote <code> [--market N] [--json]     实时行情快照
+ths quote <code> [--market N] [--json]     实时行情快照(含换手/量比/PE/市值/涨跌停)
+ths quotes [--pool watchlist|--codes a,b] [--json]   批量行情(一次多只)
 ths kline <code> [--period day|week|month|quarter|60min|120min]
        [--count N] [--adjust forward|backward|none] [--market N]
        [--json|--csv]           获取 K 线
 ths trend <code> [--count N] [--market N] [--json|--csv]   分时数据
 ths turnover [--period minute|day] [--count N] [--json]    大盘成交额
-ths analyze <code> [--period ...] [--count 250] [--market N] [--json] [--refresh]
-                                                     K线技术分析(全指标+形态+支撑压力+评分)
-ths scan --criterion macd-golden [--pool watchlist|--codes a,b]
-       [--min-score N] [--delay MS] [--refresh] [--json]   选股扫描
-ths watchlist add|remove|list|clear <code> [--name X] [--json]   自选股
+ths analyze <code> [--period ...] [--count 250] [--market N] [--json] [--compact] [--refresh]
+                                                     K线技术分析(全指标+形态+支撑压力+评分+估值)
+ths compare [--codes a,b,c|--pool watchlist] [--json]   跨股横向对比
+ths scan --criterion macd-golden [--pool watchlist|--codes a,b|--universe 关键词]
+       [--min-score N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json]   选股扫描
+ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]   自选股(含价格总览)
 ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
        [--fast N] [--slow N] [--count 500] [--fee 0.0005] [--json]   策略回测
 ths help                         帮助
 ```
+
+> **油猴脚本升级**:`ths quote` 的换手率/量比/PE/PB/市值字段依赖 `scripts/tonghuashun.user.js` v1.1.0。
+> 请在浏览器 Tampermonkey 里更新该脚本(或重新拖入安装),并刷新 10jqka 页面。升级前这些字段显示 `-`,其余功能不受影响。
 
 示例:
 
@@ -76,11 +84,17 @@ ths analyze 600519 --json                            # 完整指标序列(JSON)
 ths analyze 600519 --refresh                         # 强制刷新本地缓存
 ths watchlist add 600519 --name 贵州茅台             # 加入自选股
 ths watchlist add 000001                             # 加入自选股(平安银行)
+ths watchlist prices                                # 自选股实时价格总览(换手/量比/PE/市值)
+ths quote 600519                                    # 实时行情(含名称+估值)
+ths quotes --codes 600519,000001                    # 批量行情
+ths compare --codes 600519,000100,601668            # 跨股横向对比
+ths analyze 600519 --compact                        # 单行紧凑摘要
 ths scan --pool watchlist --criterion macd-golden    # 自选股里筛 MACD 金叉
+ths scan --universe 银行 --criterion ma-bull --min-score 60   # 关键词建池扫描
 ths scan --codes 600519,000001 --criterion ma-bull,volume-break --min-score 60
                                                      # 多条件 + 最低评分
-ths scan --pool watchlist --criterion rsi-oversold --delay 500 --json
-                                                     # 超卖票(JSON,节流500ms/只)
+ths scan --pool watchlist --criterion rsi-oversold --oversold 25 --delay 500 --json
+                                                     # 超卖票(自定义阈值,JSON,节流500ms/只)
 ths backtest 600519 --strategy ma-cross --fast 5 --slow 20
 ths backtest 000001 --strategy rsi --count 500 --json
 ```
@@ -106,7 +120,7 @@ ths backtest 000001 --strategy rsi --count 500 --json
 | `ma-cross-up` | MA5 上穿 MA20 | `--lookback N` |
 | `macd-golden` | MACD 柱由负转正(金叉) | `--lookback N` |
 | `macd-bull` | DIF>0 且柱>0 | |
-| `rsi-oversold` / `rsi-overbought` | RSI6 超卖/超买 | `--rsi-level N` |
+| `rsi-oversold` / `rsi-overbought` | RSI6 超卖/超买 | `--oversold N` / `--overbought N` |
 | `kdj-golden` | KDJ 金叉 | `--lookback N` |
 | `volume-break` | 放量突破 N 日新高 | `--break-n N` `--vol-ratio X` |
 | `atr-range` | 波动率区间(默认 1-6%) | `--atr-min X` `--atr-max X` |

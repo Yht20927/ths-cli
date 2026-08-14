@@ -1,11 +1,19 @@
 // tests/quote-trend.test.js — 实时行情/分时/成交额解析（真实抓包 fixture）
 
 import { describe, it, expect } from 'vitest';
-import { formatQuote, formatTrend, formatTurnover, fmtTime, QUOTE_FIELDS } from '../lib/commands/helpers.js';
+import { formatQuote, formatQuotes, formatTrend, formatTurnover, fmtTime, QUOTE_FIELDS } from '../lib/commands/helpers.js';
 
 describe('QUOTE_FIELDS 映射', () => {
   it('关键字段码', () => {
     expect(QUOTE_FIELDS['6']).toBe('price');
+    expect(QUOTE_FIELDS['13']).toBe('volume');      // 成交量(股)
+    expect(QUOTE_FIELDS['19']).toBe('amount');
+    expect(QUOTE_FIELDS['69']).toBe('limitUp');
+    expect(QUOTE_FIELDS['3153']).toBe('pe');
+    expect(QUOTE_FIELDS['592920']).toBe('pb');
+    expect(QUOTE_FIELDS['3475914']).toBe('totalMv');
+    expect(QUOTE_FIELDS['1968584']).toBe('turnoverRate');
+    expect(QUOTE_FIELDS['1771976']).toBe('volumeRatio');
     expect(QUOTE_FIELDS['199112']).toBe('pct');
     expect(QUOTE_FIELDS['264648']).toBe('change');
     expect(QUOTE_FIELDS['10']).toBe('prevClose');
@@ -29,10 +37,35 @@ describe('formatQuote（真实 multi_last_snapshot 响应）', () => {
     expect(q.high).toBe(1359.0);        // 8 最高
     expect(q.low).toBe(1338.14);        // 9 最低
     expect(q.prevClose).toBe(1342.41);  // 10 昨收
-    expect(q.volume).toBe(23211);       // 18 成交量
+    expect(q.volume).toBe(2921860);     // 13 成交量(股)
     expect(q.amount).toBe(3938909600);  // 19 成交额
     expect(q.change).toBe(-12.88);      // 264648 涨跌额
     expect(q.pct).toBe(-0.9504);        // 199112 涨跌幅
+  });
+
+  it('扩展字段（换手/量比/PE/PB/市值/涨跌停）映射', () => {
+    const qd2 = {
+      code: '600519', market: '17',
+      data_fields: ['6', '3153', '592920', '3475914', '3541450', '1968584', '1771976', '69', '70'],
+      value: [[1355.29, 20.28, 6.2, 1677597000000, 1677597000000, 0.2388, 0.82, 1490.82, 1219.76]],
+    };
+    const q = formatQuote(qd2);
+    expect(q.price).toBe(1355.29);
+    expect(q.pe).toBe(20.28);
+    expect(q.pb).toBe(6.2);
+    expect(q.totalMv).toBe(1677597000000);
+    expect(q.floatMv).toBe(1677597000000);
+    expect(q.turnoverRate).toBe(0.2388);
+    expect(q.volumeRatio).toBe(0.82);
+    expect(q.limitUp).toBe(1490.82);
+    expect(q.limitDown).toBe(1219.76);
+  });
+
+  it('formatQuotes 批量解析过滤空行', () => {
+    const list = [qd, null, { code: 'x', data_fields: ['6'], value: [] }];
+    const rows = formatQuotes(list);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].code).toBe('600519');
   });
 
   it('缺 data_fields/value 返回 null', () => {
