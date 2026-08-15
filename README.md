@@ -14,7 +14,7 @@
 - **选股扫描**:11 种条件(金叉/放量突破/均线多头/超卖…),池来源支持自选股/代码/`--universe 关键词`
 - **自选股**:本地管理,无需登录,`prices` 实时总览
 - **策略回测**:ma-cross / rsi / macd / buy-hold,输出收益/回撤/胜率/盈亏比/夏普,支持 ATR 止损/滑点/一字板约束/buy-hold 自动对比
-- **仓位计算**:`ths position` 按"目标止损额 ÷ 止损距离%"反推仓位(SKILL 仓位铁律落地),自动取支撑位与 ATR×N 止损中更远者防扫损
+- **仓位计算**:`ths position` 按"目标止损额 ÷ 止损距离%"反推仓位(SKILL 仓位铁律落地),自动取支撑位与 ATR×N 止损中更远者防扫损,并输出**盈亏比**(目标空间 ÷ 止损空间,压力位自动取,`--target` 可手动指定)
 - **大盘情绪**:`ths market` 三大指数快照 + 涨跌家数 + 市场温度(需油猴 v1.2.0)
 - **资金流**:`ths fundflow` 主力净流入排行(需油猴 v1.2.0)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
@@ -66,8 +66,8 @@ ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]   自选�
 ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
        [--fast N] [--slow N] [--count 500] [--fee 0.0005]
        [--stop-loss N] [--slippage X] [--limit-check] [--json]   策略回测
-ths position <code> --risk N [--stop X] [--atr-mult 2] [--capital N]
-       [--price X] [--period day] [--count 250] [--json]   仓位计算(止损额→仓位)
+ths position <code> --risk N [--stop X] [--target X] [--atr-mult 2] [--capital N]
+       [--price X] [--period day] [--count 250] [--json]   仓位计算(止损额→仓位+盈亏比)
 ths market [--json]    大盘情绪(三大指数+涨跌家数+市场温度)   [油猴 v1.2.0]
 ths fundflow [--top 10] [--codes a,b] [--json]   资金流排行(主力净流入)   [油猴 v1.2.0]
 ths help                         帮助
@@ -108,8 +108,9 @@ ths backtest 600519 --strategy ma-cross --fast 5 --slow 20
 ths backtest 000001 --strategy rsi --count 500 --json
 ths backtest 600519 --strategy ma-cross --stop-loss 2 --slippage 0.001 --limit-check
                                                      # 带 ATR 止损/滑点/一字板约束
-ths position 000001 --risk 3000 --capital 100000     # 仓位计算(止损额→仓位)
+ths position 000001 --risk 3000 --capital 100000     # 仓位计算(止损额→仓位+盈亏比)
 ths position 600519 --risk 10000 --stop 1300         # 手动止损价
+ths position 600519 --risk 10000 --stop 1300 --target 1500   # 手动止损价+目标价(算盈亏比)
 ths market                                          # 大盘情绪(指数+涨跌家数+温度)
 ths fundflow --top 10                               # 主力净流入 Top10
 ths fundflow --codes 600519,000001                  # 指定票在资金流榜中的位置
@@ -198,7 +199,7 @@ token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保
 ### 开发
 
 ```bash
-npm test            # vitest(127 用例,含真实 HAR fixture 的 K 线解析断言)
+npm test            # vitest(159 用例,含真实 HAR fixture 的 K 线解析断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```
