@@ -31,8 +31,12 @@ description: 同花顺行情分析 CLI — 搜索/实时行情/批量行情/6周
 | `ths market` | 大盘情绪（指数+涨跌家数+市场温度） | ① 大盘 |
 | `ths turnover` | 大盘成交额（量能） | ① 大盘 |
 | `ths fundflow` | 主力资金流向（进攻方向） | ② 板块 |
+| `ths sectors` | 板块强弱排名（涨跌幅/净流入/领涨股） | ② 板块 |
+| `ths rank` | 涨跌幅排行 + 技术形态选股（创新高/量价齐升…） | ②③ 筛选 |
+| `ths lhb` | 龙虎榜（营业部席位/机构游资） | ② 方向 |
 | `ths search` / `scan --universe` | 找股票 / 板块扫描 | ② 板块 |
 | `ths quotes` | 批量估值（PE/PB/换手/量比/市值） | ④ 价值 |
+| `ths fundamental` | F10 财务概况（毛利率/ROE/增速/负债率） | ④ 价值 |
 | `ths analyze` | 单只全指标深挖（评分/形态/支撑压力） | ③ 技术 |
 | `ths analyze <code> --period week` | 周线方向过滤（日线信号先过周线关） | ③ 技术 |
 | `ths trend` | 分时确认当日买点（尾盘站稳再动手） | ③ 买点 |
@@ -40,6 +44,7 @@ description: 同花顺行情分析 CLI — 搜索/实时行情/批量行情/6周
 | `ths scan` | 条件选股（金叉/突破/超卖…） | ②③ 筛选 |
 | `ths backtest` | 策略回测验证 | ③ 验证 |
 | `ths position` | 仓位计算（止损额→仓位 + 盈亏比） | ⑤ 风控 |
+| `ths portfolio` | 持仓台账（记录买卖→盈亏/止损/复盘） | ⑤⑥ 全程 |
 | `ths watchlist` | 自选池管理 + 实时总览 | 全程 |
 
 ---
@@ -69,6 +74,8 @@ ths turnover --period minute --count 10  # 今日分时量能
 ### 第 2 步：建立自选池 / 圈定板块（方向）
 
 ```bash
+ths sectors --top 10 --sort netIn    # 行业板块强弱排名（涨跌幅/净流入/领涨股）
+ths lhb --top 10                     # 龙虎榜：今天资金在谁身上（机构/游资席位）
 ths search 茅台                 # 找股票（名称/代码/拼音）
 ths scan --universe 券商         # 关键词圈板块：扫一批券商股
 ths scan --universe 银行 --criterion ma-bull   # 圈板块 + 直接筛
@@ -77,6 +84,8 @@ ths watchlist prices            # 随时看自选池实时估值
 ```
 
 **大师怎么看**：
+- `ths sectors --sort netIn` 直接回答"今天钱在哪条线上"——净流入居前的板块才是主线
+- `ths lhb` 看龙虎榜：同一天多只票被"机构专用"或同一游资席位买入 = 资金合力方向
 - `--universe 关键词` 用 search 联想建池，快速给一个板块"拍全家福"
 - 板块 = 资金的方向。**先选对板块，再在板块里选强股**，胜率远高于满市场乱找
 - 加自选池时**一定带 `--name`**，否则总览里只有代码认不出谁
@@ -87,6 +96,7 @@ ths watchlist prices            # 随时看自选池实时估值
 
 ```bash
 ths quotes --codes 300766,600126,300113   # 一次请求多只：PE/PB/换手/量比/市值/涨跌停
+ths fundamental 600519                    # 深挖单只质地：毛利率/ROE/增速/负债率/去年同期
 ```
 
 **大师怎么看**（这是淘汰环节，不是选入环节）：
@@ -208,6 +218,15 @@ ths backtest 600795 --strategy ma-cross --stop-loss 2 --slippage 0.001 --limit-c
 2. 亏的单子是策略问题还是执行问题？**跌破止损走人是行情没给机会，错了的是不按计划走**
 3. 策略连续失效就用 `ths backtest` 复检换打法，别死扛同一套
 
+**用工具记账**：分析只是前半场，后半场靠台账——
+```bash
+ths portfolio add 600519 --qty 100 --price 1300 --name 贵州茅台   # 建仓
+ths portfolio sell 600519 --qty 40 --price 1420 --fee 5          # 减仓（自动记已实现盈亏）
+ths portfolio list --capital 100000 --risk   # 总览：现价/浮盈亏/止损位/盈亏比/仓位占比
+ths portfolio history                        # 交易流水 → 复盘素材
+```
+没有持仓台账，`position` 算出的止损线就是摆设。**买了就记账，止损跌破就清仓，这是纪律的落地。**
+
 **大师复盘三问**：① 我在按计划做吗？② 亏损是策略问题还是执行问题？③ 这个策略还配不配继续用？
 
 ### 七步清单（下单前一页纸）
@@ -215,12 +234,12 @@ ths backtest 600795 --strategy ma-cross --stop-loss 2 --slippage 0.001 --limit-c
 | # | 检查 | 命令 | 通过标准 |
 |---|---|---|---|
 | ① | 大盘允许？ | `ths market` + `ths turnover --period day --count 5` | 温度 🔥/👍，成交额不持续萎缩 |
-| ② | 板块是主线？ | `ths scan --universe 关键词` + `ths quote <板块指数>` | 板块不破位、未超买 |
-| ③ | 估值过滤 | `ths quotes --codes ...` | 淘汰亏损/高 PE/低换手（周期股看 PB） |
+| ② | 板块是主线？ | `ths sectors --top 10 --sort netIn` + `ths lhb --top 10` | 板块净流入居前、有资金合力 |
+| ③ | 估值过滤 | `ths quotes --codes ...` + `ths fundamental <code>` | 淘汰亏损/高 PE/低换手（周期股看 PB） |
 | ④ | 技术面 | `ths analyze <code> --compact` + `--period week` + `ths trend` | 日线信号过周线关 + 盈亏比 ≥ 2 |
 | ⑤ | 横向对比 | `ths compare --codes ...` | 选 ADX 高 / ATR 低 / 盈亏比达标者 |
 | ⑥ | 回测验证 | `ths backtest <code> --strategy ... --slippage 0.001 --limit-check` | 跑赢买入持有 |
-| ⑦ | 仓位/止损 | `ths position <code> --risk N --capital N` | 单只 ≤ 20%，止损提前设好 |
+| ⑦ | 仓位/止损/记账 | `ths position <code> --risk N --capital N` + `ths portfolio add` | 单只 ≤ 20%，止损提前设好，买了就记账 |
 
 **三不买**：大盘冷不买、盈亏比 < 2 不买、仓位超铁律不买。
 

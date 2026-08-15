@@ -17,6 +17,11 @@
 - **仓位计算**:`ths position` 按"目标止损额 ÷ 止损距离%"反推仓位(SKILL 仓位铁律落地),自动取支撑位与 ATR×N 止损中更远者防扫损,并输出**盈亏比**(目标空间 ÷ 止损空间,压力位自动取,`--target` 可手动指定)
 - **大盘情绪**:`ths market` 三大指数快照 + 涨跌家数 + 市场温度(需油猴 v1.2.0)
 - **资金流**:`ths fundflow` 主力净流入排行(需油猴 v1.2.0)
+- **板块强弱**:`ths sectors` 行业/概念板块涨跌幅+净流入+领涨股排名,板块代码可直接 `ths analyze` 深挖(Node 直连)
+- **行情排行**:`ths rank` 涨跌幅排行(当日/三日/五日)+ 10 种技术形态选股(创新高/连续上涨/持续放量/突破…) (Node 直连)
+- **龙虎榜**:`ths lhb` 营业部席位/机构游资,净额排序(Node 直连)
+- **F10 财务**:`ths fundamental <code>` 毛利率/ROE/营收净利增速/负债率 + 去年同期对比与点评(Node 直连)
+- **持仓台账**:`ths portfolio` 记录建仓/加仓/减仓 → 摊薄成本/浮动与已实现盈亏/止损位/盈亏比,复盘闭环落地(本地 JSON)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 - **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
@@ -70,6 +75,11 @@ ths position <code> --risk N [--stop X] [--target X] [--atr-mult 2] [--capital N
        [--price X] [--period day] [--count 250] [--json]   仓位计算(止损额→仓位+盈亏比)
 ths market [--json]    大盘情绪(三大指数+涨跌家数+市场温度)   [油猴 v1.2.0]
 ths fundflow [--top 10] [--codes a,b] [--json]   资金流排行(主力净流入)   [油猴 v1.2.0]
+ths sectors [--type industry|concept] [--top N] [--sort pct|netIn|amount] [--json]   板块强弱排名   [Node 直连]
+ths rank [--kind zdfph|cxg|cxd|lxsz|lxxd|cxfl|cxsl|xstp|xxtp|ljqs|ljqd] [--top N] [--json]   涨跌幅/技术形态排行   [Node 直连]
+ths lhb [--top N] [--json]   龙虎榜(营业部席位)   [Node 直连]
+ths fundamental <code> [--json]   F10 财务概况   [Node 直连]
+ths portfolio add|sell|list|risk|history|remove|clear <code> [--qty N] [--price X] [--capital N] [--risk] [--json]   持仓台账   [本地]
 ths help                         帮助
 ```
 
@@ -114,6 +124,18 @@ ths position 600519 --risk 10000 --stop 1300 --target 1500   # 手动止损价+�
 ths market                                          # 大盘情绪(指数+涨跌家数+温度)
 ths fundflow --top 10                               # 主力净流入 Top10
 ths fundflow --codes 600519,000001                  # 指定票在资金流榜中的位置
+ths sectors --top 10 --sort netIn                   # 行业板块净流入排名
+ths sectors --type concept --top 5                  # 概念热点(题材事件日历)
+ths rank --kind zdfph --top 10                      # 涨跌幅排行(当日/三日/五日)
+ths rank --kind ljqs --top 10                       # 量价齐升选股
+ths lhb --top 10                                    # 龙虎榜 Top10(净额)
+ths lhb --json                                      # 龙虎榜完整席位明细
+ths fundamental 600519                              # F10 财务概况(茅台)
+ths portfolio add 600519 --qty 100 --price 1300 --name 贵州茅台   # 建仓
+ths portfolio sell 600519 --qty 40 --price 1420 --fee 5          # 减仓(记已实现盈亏)
+ths portfolio list --capital 100000 --risk          # 持仓总览(现价/浮盈亏/止损/盈亏比/仓位占比)
+ths portfolio risk 600519                           # 单只止损/目标/盈亏比
+ths portfolio history                               # 交易流水
 ```
 
 ## 参数说明

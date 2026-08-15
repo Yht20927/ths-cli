@@ -91,6 +91,18 @@ function printHelp() {
                                                  仓位计算（止损额→仓位 + 盈亏比，SKILL 铁律落地）
   ths market [--json]                           大盘情绪（三大指数 + 涨跌家数 + 市场温度）
   ths fundflow [--top 10] [--codes a,b] [--json] 资金流排行（主力净流入方向）
+  ths sectors [--type industry|concept] [--top N] [--sort pct|netIn|amount] [--json]
+                                                 板块强弱排名（行业/概念，代码可 analyze 深挖）
+  ths rank [--kind zdfph|cxg|cxd|lxsz|lxxd|cxfl|cxsl|xstp|xxtp|ljqs|ljqd] [--top N] [--json]
+                                                 涨跌幅排行 + 技术形态选股族
+  ths lhb [--top N] [--json]                    龙虎榜（营业部席位/机构游资）
+  ths fundamental <code> [--json]               F10 财务概况（毛利率/ROE/增速/负债率）
+  ths portfolio add|sell|list|risk|history|remove|clear
+       add <code> --qty N --price X [--name X] [--fee X] [--note X]
+       sell <code> --qty N --price X [--fee X]
+       list [--capital N] [--risk] [--json]
+       risk <code> [--stop X] [--target X] [--json]   # 止损/目标/盈亏比
+                                                 持仓台账（记录买卖→盈亏/止损/复盘）
 
 通用选项:
   --json    输出原始 JSON（machine-readable）
