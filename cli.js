@@ -83,8 +83,14 @@ function printHelp() {
   ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]
                                                  自选股管理 + 实时价格总览
   ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
-       [--fast N] [--slow N] [--period day] [--count 500] [--fee 0.0005] [--json]
-                                                 策略回测（收益/回撤/胜率/夏普）
+       [--fast N] [--slow N] [--period day] [--count 500] [--fee 0.0005]
+       [--stop-loss N] [--slippage X] [--limit-check] [--json]
+                                                 策略回测（收益/回撤/胜率/夏普/基准对比）
+  ths position <code> --risk N [--stop X] [--atr-mult 2] [--capital N]
+       [--price X] [--period day] [--count 250] [--json]
+                                                 仓位计算（止损额→仓位，SKILL 铁律落地）
+  ths market [--json]                           大盘情绪（三大指数 + 涨跌家数 + 市场温度）
+  ths fundflow [--top 10] [--codes a,b] [--json] 资金流排行（主力净流入方向）
 
 通用选项:
   --json    输出原始 JSON（machine-readable）

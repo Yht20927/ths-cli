@@ -8,7 +8,7 @@
 // @connect      127.0.0.1:*
 // @connect      localhost
 // @connect      localhost:*
-// @version      1.1.0
+// @version      1.2.0
 // ==/UserScript==
 
 // ═══════════════════════════════════════════════════════════
@@ -326,6 +326,56 @@ window.__ths = {
       headers: { 'Accept': 'application/json', 'Referer': 'https://www.10jqka.com.cn/' },
     });
     return data.data.charts || null;
+  },
+
+  // 大盘指数快照 + 涨跌家数（d.10jqka.com.cn realhead JSONP 接口）
+  // 返回 [{ code, name, price, prevClose, open, high, amount, upCount, downCount, flatCount, updateTime }]
+  // 字段都在 items 内: 7最新价 / 8今开 / 9昨收 / 10最高 / 19成交额 /
+  //                   37上涨家数 / 38下跌家数 / 39平盘家数 / name / updateTime
+  market: async function () {
+    var codes = ['hs_1A0001', 'hs_399001', 'hs_399006']; // 上证指数/深证成指/创业板指
+    var out = [];
+    for (var i = 0; i < codes.length; i++) {
+      var resp = await fetch('https://d.10jqka.com.cn/v2/realhead/' + codes[i] + '/last.js');
+      var text = await resp.text();
+      var m = text.match(/\((.+)\)\s*$/);
+      var o = JSON.parse(m[1]);
+      var it = o.items || {};
+      out.push({
+        code: codes[i].replace('hs_', ''),
+        name: it.name,
+        price: it['7'], prevClose: it['9'], open: it['8'], high: it['10'],
+        amount: it['19'], upCount: it['37'], downCount: it['38'], flatCount: it['39'],
+        updateTime: it.updateTime,
+      });
+    }
+    return out;
+  },
+
+  // 资金流排行（data.10jqka.com.cn GBK 页面；code 参数为接口必需，返回全市场排行）
+  // 返回 { headers, rows: [{rank, code, name, price, pct, turnoverRate, inflow, outflow, net, amount, bigIn, cells}] }
+  fundflow: async function (code) {
+    var url = 'https://data.10jqka.com.cn/funds/ggzjl/code/' + (code || '600519') + '/';
+    var resp = await fetch(url);
+    var buf = await resp.arrayBuffer();
+    var html = new TextDecoder('gbk').decode(buf);
+    var table = (html.match(/<table[^>]*>[\s\S]*?<\/table>/g) || [])[0] || '';
+    var headers = (table.match(/<th[^>]*>[\s\S]*?<\/th>/g) || []).map(function (s) {
+      return s.replace(/<[^>]+>/g, '').trim();
+    });
+    var rows = [];
+    var trs = (table.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) || []).slice(1); // 跳过表头行
+    var strip = function (s) { return s.replace(/<[^>]+>/g, ' ').replace(/-->/g, '').replace(/\s+/g, ' ').trim(); };
+    for (var i = 0; i < trs.length; i++) {
+      var cells = (trs[i].match(/<td[^>]*>[\s\S]*?<\/td>/g) || []).map(strip);
+      if (cells.length < 4) continue;
+      rows.push({
+        rank: cells[0], code: cells[1], name: cells[2], price: cells[3], pct: cells[4],
+        turnoverRate: cells[5], inflow: cells[6], outflow: cells[7], net: cells[8],
+        amount: cells[9], bigIn: cells[10], cells: cells,
+      });
+    }
+    return { headers: headers, rows: rows };
   },
 };
 

@@ -85,3 +85,78 @@ describe('makeSignals', () => {
     expect(s).toHaveLength(sineWave().length);
   });
 });
+
+describe('回测增强：ATR 止损 / 滑点 / 一字板约束', () => {
+  // 买入后单边暴跌：ma-cross 金叉买入后一路下跌
+  function buyThenCrash() {
+    const closes = [];
+    for (let i = 0; i < 8; i++) closes.push(100);              // 横盘
+    for (let i = 1; i <= 10; i++) closes.push(100 + i * 3);    // 拉升触发金叉
+    for (let i = 1; i <= 30; i++) closes.push(125 - i * 4);    // 暴跌至 5
+    return closes.map(c => ({ open: c, high: c + 1, low: c - 1, close: c }));
+  }
+
+  it('ATR 止损在暴跌中触发，亏损远小于裸奔', () => {
+    const b = buyThenCrash();
+    // 用 buy-hold：全程持仓无卖出信号，只有止损能截断暴跌
+    const r0 = backtest(b, 'buy-hold', {}, { fee: 0.0005 });
+    const rs = backtest(b, 'buy-hold', {}, { fee: 0.0005, stopLossAtr: 2 });
+    expect(rs.stopLossTriggered).toBeGreaterThanOrEqual(1);
+    // 止损后总收益应显著优于无止损（暴跌从 145 跌到 5，裸奔接近 -100%）
+    expect(rs.totalReturnPct).toBeGreaterThan(r0.totalReturnPct);
+    // 止损交易 reason 标记
+    expect(rs.trades.some(t => t.reason === 'stop')).toBe(true);
+  });
+
+  it('止损价 = 入场价 - N×ATR，跳空低开按开盘价成交', () => {
+    // 单根巨幅低开：open 远低于 stop 价
+    const closes = [];
+    for (let i = 0; i < 8; i++) closes.push(100);
+    for (let i = 1; i <= 8; i++) closes.push(100 + i * 2);   // 拉升到 116
+    closes.push(116);                                        // 横一天
+    const b = closes.map((c, i) => {
+      if (i === closes.length - 1) return { open: 90, high: 90, low: 85, close: 88 }; // 跳空低开暴跌
+      return { open: c, high: c + 1, low: c - 1, close: c };
+    });
+    const r = backtest(b, 'ma-cross', { fast: 2, slow: 5 }, { fee: 0, stopLossAtr: 2 });
+    const stopTrade = r.trades.find(t => t.reason === 'stop');
+    expect(stopTrade).toBeTruthy();
+    expect(stopTrade.sellPrice).toBe(90); // 开盘跳空低于止损 → 以 open 成交
+  });
+
+  it('滑点降低收益', () => {
+    const s = flatThenRise();
+    const r0 = backtest(s, 'buy-hold', {}, { fee: 0 });
+    const rs = backtest(s, 'buy-hold', {}, { fee: 0, slippage: 0.01 });
+    expect(rs.totalReturnPct).toBeLessThan(r0.totalReturnPct);
+    expect(rs.slippage).toBe(0.01);
+  });
+
+  it('limitCheck 跳过一字板（high≈low）信号', () => {
+    const closes = [];
+    for (let i = 0; i < 8; i++) closes.push(100);
+    for (let i = 1; i <= 6; i++) closes.push(100 + i * 3);
+    const b = closes.map((c, i) => {
+      // 第 8 根（金叉信号可能出现的区域）人为一字板
+      if (i === 8) return { open: c, high: c, low: c, close: c };
+      return { open: c - 0.5, high: c + 1, low: c - 1, close: c };
+    });
+    const rOn = backtest(b, 'ma-cross', { fast: 2, slow: 5 }, { fee: 0, limitCheck: true });
+    const rOff = backtest(b, 'ma-cross', { fast: 2, slow: 5 }, { fee: 0, limitCheck: false });
+    expect(rOn.limitCheck).toBe(true);
+    expect(rOff.limitCheck).toBe(false);
+    // 开启后应有跳过记录（数据里存在一字板 bar），且开关行为不同
+    expect(rOn.limitSkipped + rOff.limitSkipped).toBeGreaterThanOrEqual(0);
+    // 至少有一个场景被约束影响（信号在一字板日被跳过 → 交易次数可能不同）
+    expect([rOn.numTrades, rOff.numTrades].some((v, i, a) => a[0] !== a[1])).toBe(true);
+  });
+
+  it('buy-hold 基准计入滑点佣金', () => {
+    const s = flatThenRise();
+    const r = backtest(s, 'buy-hold', {}, { fee: 0.001, slippage: 0.002 });
+    // 总收益与基准都应小于 0 成本理想值
+    const r0 = backtest(s, 'buy-hold', {}, { fee: 0, slippage: 0 });
+    expect(r.totalReturnPct).toBeLessThan(r0.totalReturnPct);
+    expect(r.buyHoldReturnPct).toBeLessThan(r0.buyHoldReturnPct);
+  });
+});

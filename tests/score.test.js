@@ -1,7 +1,7 @@
 // tests/score.test.js — 多因子综合评分
 
 import { describe, it, expect } from 'vitest';
-import { scoreBars } from '../lib/score.js';
+import { scoreBars, normalizeWeights, WEIGHTS } from '../lib/score.js';
 
 function bullBars(n = 80) {
   const bars = [];
@@ -60,5 +60,42 @@ describe('scoreBars', () => {
     const p = detectPatterns(bars);
     const s = scoreBars(bars, { analysis: a, patterns: p });
     expect(s.total).toBeGreaterThanOrEqual(60);
+  });
+});
+
+describe('normalizeWeights / 自定义权重', () => {
+  it('部分覆盖时其余回退默认，且总和归一化为 1', () => {
+    const w = normalizeWeights({ trend: 0.5 });
+    expect(w.trend).toBeCloseTo(0.5 / (0.5 + 0.2 + 0.15 + 0.15 + 0.1 + 0.15), 6);
+    expect(Object.values(w).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
+    expect(w.momentum).toBeGreaterThan(0); // 未覆盖的回退默认
+  });
+
+  it('非法值回退默认', () => {
+    const w = normalizeWeights({ trend: -1, momentum: 'abc', volume: 0.3 });
+    // 非法值回退默认，合法值保留；归一化后比例关系不变
+    expect(w.trend / w.momentum).toBeCloseTo(WEIGHTS.trend / WEIGHTS.momentum, 6);
+    expect(w.volume).toBeCloseTo(0.3 / (0.25 + 0.2 + 0.3 + 0.15 + 0.1 + 0.15), 6);
+    expect(Object.values(w).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
+  });
+
+  it('null/空对象返回默认权重', () => {
+    expect(normalizeWeights(null)).toEqual(WEIGHTS);
+    expect(normalizeWeights({})).toEqual(WEIGHTS);
+  });
+
+  it('自定义权重改变总分（把下跌股的趋势因子降为 0 → 分数变化）', () => {
+    const bars = bearBars();
+    const s0 = scoreBars(bars);
+    const s1 = scoreBars(bars, { weights: { trend: 0, momentum: 0, volume: 0, swing: 0, risk: 0, pattern: 1 } });
+    // 全押 pattern 因子时，分数 = pattern 因子分
+    expect(s1.total).toBe(s1.factors.pattern);
+    expect(s1.total).not.toBe(s0.total);
+  });
+
+  it('返回结果包含实际使用的 weights', () => {
+    const s = scoreBars(bullBars(), { weights: { trend: 0.4 } });
+    expect(Object.values(s.weights).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
+    expect(s.weights.trend).toBeGreaterThan(WEIGHTS.trend);
   });
 });

@@ -20,5 +20,18 @@
   },
   "scan": {
     "delayMs": 500
+  },
+  "score": {
+    "weights": {
+      "trend": 0.25,
+      "momentum": 0.20,
+      "volume": 0.15,
+      "swing": 0.15,
+      "risk": 0.10,
+      "pattern": 0.15
+    }
+  },
+  "position": {
+    "risk": 5000
   }
 }

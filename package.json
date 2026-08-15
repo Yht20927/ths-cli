@@ -14,6 +14,10 @@
   "scripts": {
     "server": "node server.js",
     "bridge": "scripts/bridge.sh",
+    "doctor": "scripts/doctor.sh",
+    "daily": "scripts/daily.sh",
+    "demo": "scripts/demo.sh",
+    "cache": "scripts/cache.sh",
     "help": "node cli.js help",
     "search": "node cli.js search",
     "quote": "node cli.js quote",

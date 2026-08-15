@@ -13,7 +13,10 @@
 - **跨股对比**:`ths compare` 一次横向对比多只的评分/信号/形态/支撑压力
 - **选股扫描**:11 种条件(金叉/放量突破/均线多头/超卖…),池来源支持自选股/代码/`--universe 关键词`
 - **自选股**:本地管理,无需登录,`prices` 实时总览
-- **策略回测**:ma-cross / rsi / macd / buy-hold,输出收益/回撤/胜率/盈亏比/夏普
+- **策略回测**:ma-cross / rsi / macd / buy-hold,输出收益/回撤/胜率/盈亏比/夏普,支持 ATR 止损/滑点/一字板约束/buy-hold 自动对比
+- **仓位计算**:`ths position` 按"目标止损额 ÷ 止损距离%"反推仓位(SKILL 仓位铁律落地),自动取支撑位与 ATR×N 止损中更远者防扫损
+- **大盘情绪**:`ths market` 三大指数快照 + 涨跌家数 + 市场温度(需油猴 v1.2.0)
+- **资金流**:`ths fundflow` 主力净流入排行(需油猴 v1.2.0)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 - **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
@@ -61,12 +64,18 @@ ths scan --criterion macd-golden [--pool watchlist|--codes a,b|--universe 关键
        [--min-score N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json]   选股扫描
 ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]   自选股(含价格总览)
 ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
-       [--fast N] [--slow N] [--count 500] [--fee 0.0005] [--json]   策略回测
+       [--fast N] [--slow N] [--count 500] [--fee 0.0005]
+       [--stop-loss N] [--slippage X] [--limit-check] [--json]   策略回测
+ths position <code> --risk N [--stop X] [--atr-mult 2] [--capital N]
+       [--price X] [--period day] [--count 250] [--json]   仓位计算(止损额→仓位)
+ths market [--json]    大盘情绪(三大指数+涨跌家数+市场温度)   [油猴 v1.2.0]
+ths fundflow [--top 10] [--codes a,b] [--json]   资金流排行(主力净流入)   [油猴 v1.2.0]
 ths help                         帮助
 ```
 
-> **油猴脚本升级**:`ths quote` 的换手率/量比/PE/PB/市值字段依赖 `scripts/tonghuashun.user.js` v1.1.0。
-> 请在浏览器 Tampermonkey 里更新该脚本(或重新拖入安装),并刷新 10jqka 页面。升级前这些字段显示 `-`,其余功能不受影响。
+> **油猴脚本升级**:`ths quote` 的换手率/量比/PE/PB/市值字段依赖 `scripts/tonghuashun.user.js` v1.1.0;
+> `ths market` / `ths fundflow` 依赖 v1.2.0。
+> 请在浏览器 Tampermonkey 里更新该脚本(或重新拖入安装),并刷新 10jqka 页面。升级前这些功能显示 `-` 或报"油猴脚本需 v1.2.0",其余功能不受影响。
 
 示例:
 
@@ -97,6 +106,13 @@ ths scan --pool watchlist --criterion rsi-oversold --oversold 25 --delay 500 --j
                                                      # 超卖票(自定义阈值,JSON,节流500ms/只)
 ths backtest 600519 --strategy ma-cross --fast 5 --slow 20
 ths backtest 000001 --strategy rsi --count 500 --json
+ths backtest 600519 --strategy ma-cross --stop-loss 2 --slippage 0.001 --limit-check
+                                                     # 带 ATR 止损/滑点/一字板约束
+ths position 000001 --risk 3000 --capital 100000     # 仓位计算(止损额→仓位)
+ths position 600519 --risk 10000 --stop 1300         # 手动止损价
+ths market                                          # 大盘情绪(指数+涨跌家数+温度)
+ths fundflow --top 10                               # 主力净流入 Top10
+ths fundflow --codes 600519,000001                  # 指定票在资金流榜中的位置
 ```
 
 ## 参数说明
@@ -160,19 +176,46 @@ Bridge Server(`lib/server/*`)提供 `/api/health` `/api/status` `/api/call` `/ap
   "cache": {                // K线缓存 TTL(分钟),可覆盖
     "ttlMinutes": { "day": 10, "week": 30, "month": 60, "quarter": 60, "60min": 1, "120min": 1 }
   },
-  "scan": { "delayMs": 500 }   // 扫描节流,防 WAF(可被 --delay 覆盖)
+  "scan": { "delayMs": 500 },   // 扫描节流,防 WAF(可被 --delay 覆盖)
+  "score": {                    // 综合评分六因子权重(可覆盖部分,自动归一化)
+    "weights": { "trend": 0.25, "momentum": 0.20, "volume": 0.15, "swing": 0.15, "risk": 0.10, "pattern": 0.15 }
+  },
+  "position": { "risk": 5000 }  // ths position 默认单笔风险额(可被 --risk 覆盖)
 }
 ```
 
 token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保持一致。
 
+### 已知限制
+
+- **涨停梯队 / 板块成分**:同花顺 `q.10jqka.com.cn` 与 `data.10jqka.com.cn` 的涨停池、板块成分接口被 CORS/WAF 拦截(实测 `fetch` 全部 NetworkError 或空响应),故未提供 `ths limitup` / `ths board` 命令。替代路径:
+  - 大盘温度 → `ths market`(涨跌家数)
+  - 资金进攻方向 → `ths fundflow`(主力净流入)
+  - 圈板块 → `ths scan --universe 关键词`(search 联想建池)
+  - 筛强势股 → `ths scan --criterion volume-break,ma-bull`
+- **涨跌家数口径**:`ths market` 的涨/跌/平家数为各市场证券合计(含基金/债券等),以同花顺 realhead 接口为准,用于情绪判断足够,不用于精确统计。
+
 ### 开发
 
 ```bash
-npm test            # vitest(32 用例,含真实 HAR fixture 的 K 线解析断言)
+npm test            # vitest(127 用例,含真实 HAR fixture 的 K 线解析断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```
+
+### 帮助脚本
+
+`scripts/` 下除 `bridge.sh`（Server 生命周期）与 `tonghuashun.user.js`（油猴脚本）外，还有：
+
+| 脚本 | 用途 | 用法 |
+|---|---|---|
+| `scripts/doctor.sh` | 一键排障:node/config/依赖/Server/油猴版本与 token 一致性/目录可写,输出 ✓/✗ 清单与修复指引 | `./scripts/doctor.sh`（`-q` 静默可脚本化判断,`-v` 详情,`--fix` 自动修） |
+| `scripts/demo.sh` | 全链路冒烟测试:搜索→行情→K线→分时→成交额→分析→对比→扫描→回测,11 步任一步失败即退出非 0 | `./scripts/demo.sh`（`--quick` 6 步,`--codes a,b` 换池） |
+| `scripts/daily.sh` | 大师日报:①大盘成交额 → ②代码池估值 → ③条件扫描 → ④技术深挖 → ⑤横向对比,开盘前一次跑完 | `./scripts/daily.sh`（`--codes` 换池,`--compact`/`--all`,`--scan-criteria` 换条件） |
+| `scripts/cache.sh` | 缓存管理:统计 / 按周期清理 / 自选股+名称导出导入（迁移备份） | `stats` `clean [--period day]` `export --file f` `import --file f` |
+| `scripts/completion.bash` | `ths` 命令/周期/选股条件/回测策略 bash 补全 | `echo "source $(pwd)/scripts/completion.bash" >> ~/.bashrc` |
+
+对应的 npm scripts:`npm run doctor` / `npm run daily` / `npm run demo` / `npm run cache`。
 
 ## 免责声明
 
