@@ -18,7 +18,7 @@ try { config = require('./config.json'); } catch (e) { /* use defaults */ }
 // ── Bridge 客户端 ──
 const bridge = new BridgeClient({
   host: config.bridge?.host || '127.0.0.1',
-  port: config.bridge?.port || 19422,
+  port: config.bridge?.port || 19429,
   token: config.bridge?.token || '',
 });
 

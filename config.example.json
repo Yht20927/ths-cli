@@ -1,7 +1,7 @@
 {
   "bridge": {
     "host": "127.0.0.1",
-    "port": 19422,
+    "port": 19429,
     "token": "",
     "heartbeatInterval": 30000,
     "heartbeatTimeout": 10000,

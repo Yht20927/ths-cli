@@ -30,7 +30,7 @@
   }
 
   const CONFIG = {
-    server: 'http://127.0.0.1:19422',
+    server: 'http://127.0.0.1:19429',
     site: '10jqka.com.cn',
     token: 'fe494ef660d39ebfc5963feaec808fd30a5dcd76d4eb7df5', // 与 config.json 的 bridge.token 保持一致
     reconnectDelay: 2000,

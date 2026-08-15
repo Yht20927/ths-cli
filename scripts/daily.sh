@@ -48,12 +48,12 @@ OK="${c_green}✓${c_reset}"; FAIL="${c_red}✗${c_reset}"; WARN="${c_yellow}⚠
 HDR() { echo ""; echo "${c_bold}━━━ $1 ━━━${c_reset}"; }
 
 # ── 确保 Bridge 在线 ──
-if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:19422/api/status"; then
+if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:19429/api/status"; then
   echo "[daily.sh] Bridge Server 未运行，尝试启动..."
   "$SCRIPT_DIR/bridge.sh" start || true
   sleep 1
 fi
-if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:19422/api/status"; then
+if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:19429/api/status"; then
   echo "$FAIL Bridge Server 仍不可用 — 先: ./scripts/bridge.sh start（浏览器需打开 10jqka 页面）" >&2
   exit 1
 fi

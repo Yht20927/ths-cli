@@ -36,7 +36,7 @@ OK="${c_green}✓${c_reset}"; FAIL="${c_red}✗${c_reset}"
 
 # ── 前置: Bridge 必须在线 ──
 echo "${c_bold}ths-cli 冒烟测试${c_reset} $(date '+%F %T')"
-if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:19422/api/status"; then
+if ! curl -s -o /dev/null --max-time 2 "http://127.0.0.1:19429/api/status"; then
   echo "$FAIL Bridge Server 未运行 — 先执行: ./scripts/bridge.sh start（并确认浏览器油猴已连接）" >&2
   exit 1
 fi

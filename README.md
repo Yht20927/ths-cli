@@ -29,7 +29,7 @@
 ┌──────────┐    /api/call    ┌──────────────┐   WebSocket/poll   ┌────────────────────┐
 │   ths CLI │ ─────────────▶ │ Bridge Server│ ◀───────────────  │ 油猴脚本 (页面上下文) │
 └──────────┘  eval 表达式     │  127.0.0.1:  │                   └────────────────────┘
-                             │  19422       │      fetch + 静态JWT + cookie
+                             │  19429       │      fetch + 静态JWT + cookie
                              └──────────────┘          ↕
               quota-h.10jqka.com.cn / news.10jqka.com.cn / dq.10jqka.com.cn
 ```
@@ -192,7 +192,7 @@ Bridge Server(`lib/server/*`)提供 `/api/health` `/api/status` `/api/call` `/ap
 {
   "bridge": {
     "host": "127.0.0.1",
-    "port": 19422,
+    "port": 19429,
     "token": "",            // 留空则 server 自动生成并写回
     "requestTimeout": 30000
   },
