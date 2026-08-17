@@ -103,6 +103,15 @@ function printHelp() {
        list [--capital N] [--risk] [--json]
        risk <code> [--stop X] [--target X] [--json]   # 止损/目标/盈亏比
                                                  持仓台账（记录买卖→盈亏/止损/复盘）
+  ths daily run [--codes a,b] [--refresh] [--min-n N] [--since N] [--candidates a,b,c] [--json]
+                                                 每日监控+快照+复盘+池建议（学习回路）
+  ths daily review [--since N] [--code X] [--min-n N] [--json]   复盘命中率统计（纯本地）
+  ths daily lessons [--json]                      经验教训 + 待确认池建议
+  ths daily lesson-add "复盘文字" [--category X] [--code X]       手动记一条经验
+  ths daily lesson-remove <id>                    删除一条经验
+  ths daily snapshot [--date YYYY-MM-DD] [--code X] [--json]     查看历史快照
+  ths daily apply <Sid> [--yes]                   执行池建议（剔除/加入/减仓）
+                                                 每日复盘闭环：分析落盘→3/5日回填命中→经验积累
 
 通用选项:
   --json    输出原始 JSON（machine-readable）

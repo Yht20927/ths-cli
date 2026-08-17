@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
-# daily.sh — 大师日报：开盘前一键跑完七步法前 5 步（大盘→自选池→估值→技术→对比）
+# daily.sh — 每日监控 + 复盘 + 经验积累（学习回路）
+#
+# 一键跑 `ths daily run`（①大盘 ②自选池估值 ③逐股分析存快照 ④回填历史outcome ⑤池建议）
+# + `ths daily review`（复盘命中率统计，纯本地）。结果落盘 data/daily/，长期积累可复用。
 #
 # 用法:
-#   scripts/daily.sh                        # 全量日报（默认自选池）
-#   scripts/daily.sh --codes 600519,000001  # 用指定代码池代替自选池
-#   scripts/daily.sh --compact              # 只输出紧凑摘要（analyze 用 --compact）
-#   scripts/daily.sh --scan-criteria macd-golden,ma-bull   # 自定义扫描条件
-#
-# 输出顺序（对应 SKILL.md 七步法）:
-#   ① 大盘环境: 成交额（日K 5天 + 今日分时）
-#   ② 自选池/代码池实时行情（估值初筛: PE/换手/量比/市值）
-#   ③ 条件选股扫描（默认: 均线多头 + 评分≥60）
-#   ④ 单只技术深挖（默认第一只，--all 逐只 --compact）
-#   ⑤ 横向对比定优先级
+#   scripts/daily.sh                          # 默认自选池，监控+复盘
+#   scripts/daily.sh --codes 600519,000001    # 用指定代码池
+#   scripts/daily.sh --refresh                # 强制刷新 K 线缓存（否则走 TTL 缓存）
+#   scripts/daily.sh --since 90               # 复盘统计窗口（天，默认 30）
+#   scripts/daily.sh --scan                   # 显式加跑一遍条件选股（默认不做，省接口）
+#   scripts/daily.sh --candidates a,b,c       # 让候选参与"加入"池建议评估
 #
 # 依赖: Bridge Server 在线（自动 ensure）；失败步骤给出提示但不中断整份日报。
 
@@ -23,23 +21,34 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
 CODES=""
-COMPACT=0
-ALL=0
-CRITERIA="ma-bull,score-gt"
-POOL_ARGS=("--pool" "watchlist")
+REFRESH=0
+SINCE=30
+SCAN=0
+CANDIDATES=""
+MIN_N=""
+POOL_ARGS=()
+RUN_FLAGS=()
 
 args=("$@")
 for ((i=0; i<${#args[@]}; i++)); do
   case "${args[$i]}" in
     --codes) CODES="${args[$((i+1))]:-}"; i=$((i+1)); POOL_ARGS=("--codes" "$CODES") ;;
     --codes=*) CODES="${args[$i]#--codes=}"; POOL_ARGS=("--codes" "$CODES") ;;
-    --compact) COMPACT=1 ;;
-    --all) ALL=1 ;;
-    --scan-criteria) CRITERIA="${args[$((i+1))]:-}"; i=$((i+1)) ;;
-    --scan-criteria=*) CRITERIA="${args[$i]#--scan-criteria=}" ;;
-    *) echo "未知参数: ${args[$i]}（可用 --codes / --compact / --all / --scan-criteria）" >&2; exit 2 ;;
+    --refresh) REFRESH=1 ;;
+    --since) SINCE="${args[$((i+1))]:-}"; i=$((i+1)) ;;
+    --since=*) SINCE="${args[$i]#--since=}" ;;
+    --scan) SCAN=1 ;;
+    --candidates) CANDIDATES="${args[$((i+1))]:-}"; i=$((i+1)) ;;
+    --candidates=*) CANDIDATES="${args[$i]#--candidates=}" ;;
+    --min-n) MIN_N="${args[$((i+1))]:-}"; i=$((i+1)) ;;
+    --min-n=*) MIN_N="${args[$i]#--min-n=}" ;;
+    *) echo "未知参数: ${args[$i]}（可用 --codes / --refresh / --since N / --scan / --candidates / --min-n）" >&2; exit 2 ;;
   esac
 done
+
+[[ $REFRESH -eq 1 ]] && RUN_FLAGS+=("--refresh")
+[[ -n "$MIN_N" ]] && RUN_FLAGS+=("--min-n" "$MIN_N")
+[[ -n "$CANDIDATES" ]] && RUN_FLAGS+=("--candidates" "$CANDIDATES")
 
 USE_COLOR=0
 [[ -t 1 ]] && [[ "${NO_COLOR:-}" == "" ]] && USE_COLOR=1
@@ -67,55 +76,27 @@ step() { # step <名称> <命令...>  失败不中断，打 ⚠ 继续
   fi
 }
 
-echo "${c_bold}════════ 大师日报 ════════${c_reset}  $(date '+%F %T')"
-echo "${c_dim}七步法: ①大盘 → ②自选池估值 → ③扫描 → ④技术 → ⑤对比（详见 SKILL.md）${c_reset}"
+echo "${c_bold}════════ 每日监控 + 复盘 ════════${c_reset}  $(date '+%F %T')"
+echo "${c_dim}学习回路: 盯盘→存快照→3/5日回填命中→经验积累→池建议（详见 SKILL.md / README 每日学习回路）${c_reset}"
 
-# ── ① 大盘环境 ──
-HDR "① 大盘情绪（成交额）"
-step "大盘成交额(日K, 5天)"  $CLI turnover --period day --count 5
-step "今日分时量能"          $CLI turnover --period minute --count 8
+# ── 主流程：监控 + 快照 + 复盘 + 建议 ──
+HDR "① 每日监控（大盘 → 自选池估值 → 逐股分析快照 → 回填 → 池建议）"
+step "每日监控+快照+建议"  $CLI daily run "${POOL_ARGS[@]}" "${RUN_FLAGS[@]}"
 
-# ── ② 自选池实时估值 ──
-HDR "② 代码池实时估值（淘汰环节: PE<0 纯题材 / 换手<1% 流动性差）"
-step "批量行情"              $CLI quotes "${POOL_ARGS[@]}"
+# ── 复盘统计（纯本地）──
+HDR "② 复盘命中率统计（近 ${SINCE} 天）"
+step "复盘统计"  $CLI daily review --since "$SINCE" ${MIN_N:+--min-n "$MIN_N"}
 
-# ── ③ 条件选股 ──
-HDR "③ 条件选股（${CRITERIA}）"
-step "选股扫描"              $CLI scan "${POOL_ARGS[@]}" --criterion "$CRITERIA" --min-score 50
+# ── 经验与待确认建议 ──
+HDR "③ 经验教训 + 待确认池建议"
+step "经验与建议"  $CLI daily lessons
 
-# ── ④ 单只技术深挖 ──
-HDR "④ 技术面深挖（默认第一只; --all 逐只 --compact）"
-if [[ $ALL -eq 1 ]]; then
-  if [[ -n "$CODES" ]]; then
-    IFS=',' read -ra CODEPOOL <<< "$CODES"
-    for c in "${CODEPOOL[@]}"; do
-      step "分析 $c"          $CLI analyze "$c" --compact
-    done
-  else
-    step "分析自选池(compact 逐只)" $CLI compare "${POOL_ARGS[@]}" --json 2>/dev/null || \
-      echo "$WARN 自选池为空或无法分析，先 add 或用 --codes" >&2
-  fi
-else
-  # analyze 只吃单只代码：取 CODES 第一个，否则取自选池第一只
-  FIRST=""
-  if [[ -n "$CODES" ]]; then
-    FIRST="${CODES%%,*}"
-  else
-    FIRST=$(node -e "const c=require('./data/cache/ths.json');const w=c.watchlist||[];console.log(w.length?w[0].code:'')" 2>/dev/null || true)
-  fi
-  if [[ -n "$FIRST" ]]; then
-    A_ARGS=("$FIRST")
-    [[ $COMPACT -eq 1 ]] && A_ARGS+=("--compact")
-    step "分析 $FIRST（--all 看全部）" $CLI analyze "${A_ARGS[@]}"
-  else
-    echo "$WARN 无股票可分析 — 用 --codes a,b 或先 watchlist add" >&2
-  fi
+# ── 条件选股（可选，默认关闭以省接口）──
+if [[ $SCAN -eq 1 ]]; then
+  HDR "④ 条件选股（--scan 显式开启）"
+  step "选股扫描"  $CLI scan "${POOL_ARGS[@]}" --criterion ma-bull,score-gt --min-score 50
 fi
-
-# ── ⑤ 横向对比 ──
-HDR "⑤ 横向对比定优先级（评分接近时优先 ADX 高 / ATR 低）"
-step "跨股对比"              $CLI compare "${POOL_ARGS[@]}"
 
 echo ""
 echo "${c_bold}════════ 日报结束 ════════${c_reset}"
-echo "${c_dim}纪律提醒: 不追高 / 不抄底 / 止损提前设 / 仓位=目标止损额÷(ATR%×2) / 多重共振才动手${c_reset}"
+echo "${c_dim}纪律提醒: 不追高 / 不抄底 / 止损提前设 / 多重共振才动手 / 池建议用 ths daily apply <Sid> --yes 手动确认${c_reset}"

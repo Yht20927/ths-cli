@@ -80,6 +80,13 @@ ths rank [--kind zdfph|cxg|cxd|lxsz|lxxd|cxfl|cxsl|xstp|xxtp|ljqs|ljqd] [--top N
 ths lhb [--top N] [--json]   龙虎榜(营业部席位)   [Node 直连]
 ths fundamental <code> [--json]   F10 财务概况   [Node 直连]
 ths portfolio add|sell|list|risk|history|remove|clear <code> [--qty N] [--price X] [--capital N] [--risk] [--json]   持仓台账   [本地]
+ths daily run [--codes a,b] [--refresh] [--min-n N] [--since N] [--candidates a,b,c] [--json]
+      每日监控+快照+复盘+池建议(学习回路)   [本地+行情]
+ths daily review [--since N] [--code X] [--min-n N] [--json]   复盘命中率统计   [本地]
+ths daily lessons [--json]    经验教训+待确认池建议   [本地]
+ths daily lesson-add "复盘文字" [--category X] [--code X]    手动记一条经验   [本地]
+ths daily snapshot [--date D] [--code X] [--json]   查看历史快照   [本地]
+ths daily apply <Sid> [--yes]   执行池建议(剔除/加入/减仓)   [本地]
 ths help                         帮助
 ```
 
@@ -136,6 +143,13 @@ ths portfolio sell 600519 --qty 40 --price 1420 --fee 5          # 减仓(记已
 ths portfolio list --capital 100000 --risk          # 持仓总览(现价/浮盈亏/止损/盈亏比/仓位占比)
 ths portfolio risk 600519                           # 单只止损/目标/盈亏比
 ths portfolio history                               # 交易流水
+ths daily run                                       # 每日监控+复盘+建议(自选池)
+ths daily run --codes 600519,000001                 # 指定池
+ths daily run --candidates 000049,688508            # 候选参与"加入"评估
+ths daily review --since 90                         # 复盘命中率统计
+ths daily lesson-add "完整共振才是买点" --category 策略 --code 000049
+ths daily snapshot --date 2026-08-17 --code 000049  # 查看某日某股快照
+ths daily apply S01 --yes                           # 执行池建议
 ```
 
 ## 参数说明
@@ -173,6 +187,19 @@ K 线数据缓存于 `data/cache/ths.json`(gitignore),避免重复打同花顺�
 - TTL:日/周/月/季 10 分钟,60/120 分钟 1 分钟,可在 `config.json` 的 `cache.ttlMinutes` 覆盖
 - `analyze` / `scan` / `backtest` 默认走缓存,`--refresh` 强制刷新
 - 自选股存于同一文件;`watchlist clear` 清空自选与 K 线缓存
+
+## 每日学习回路(`ths daily`)
+
+把「每日监控 → 复盘 → 经验积累」闭环化:`daily run` 一次取数,把每只监控股的分析快照按交易日落盘
+到 `data/daily/snapshots/YYYY-MM-DD.json`,3/5 个交易日后再自动回填该快照的 outcome(看对/看错、
+支撑是否守住、是否触压力),按特征桶累计命中率,并给出池建议(剔除/减仓/加入)。经验与建议存
+`data/daily/lessons.json`,可长期复用。
+
+- 复盘窗口按「快照序列定位」,无交易日历依赖;缺跑的日子自动顺延,周末同日重跑幂等
+- 命中率桶:信号/评分/均线/市场情绪(MACD/KDJ/RSI/ADX/ATR/形态/共振),`n≥--min-n`(默认5)才显示
+- 池建议只出建议不执行,`ths daily apply <Sid> --yes` 确认后才改自选池
+- `review / lessons / snapshot / apply` 纯本地离线可用;`run` 各网络步失败打 ⚠ 不中断
+- 每日一键:`npm run daily`(scripts/daily.sh 已改为跑 `ths daily run` + `review`)
 
 ## 架构
 
