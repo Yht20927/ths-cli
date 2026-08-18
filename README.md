@@ -21,7 +21,7 @@
 - **行情排行**:`ths rank` 涨跌幅排行(当日/三日/五日)+ 10 种技术形态选股(创新高/连续上涨/持续放量/突破…) (Node 直连)
 - **龙虎榜**:`ths lhb` 营业部席位/机构游资,净额排序(Node 直连)
 - **F10 财务**:`ths fundamental <code>` 毛利率/ROE/营收净利增速/负债率 + 去年同期对比与点评(Node 直连)
-- **持仓台账**:`ths portfolio` 记录建仓/加仓/减仓 → 摊薄成本/浮动与已实现盈亏/止损位/盈亏比,复盘闭环落地(本地 JSON)
+- **持仓台账**:`ths portfolio` 记录建仓/加仓/减仓 → 摊薄成本/浮动与已实现盈亏/**建仓即固化止损**/盈亏比;`daily run` 每日查破位并记连续违规天数(本地 JSON)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 - **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
@@ -79,9 +79,10 @@ ths sectors [--type industry|concept] [--top N] [--sort pct|netIn|amount] [--jso
 ths rank [--kind zdfph|cxg|cxd|lxsz|lxxd|cxfl|cxsl|xstp|xxtp|ljqs|ljqd] [--top N] [--json]   涨跌幅/技术形态排行   [Node 直连]
 ths lhb [--top N] [--json]   龙虎榜(营业部席位)   [Node 直连]
 ths fundamental <code> [--json]   F10 财务概况   [Node 直连]
-ths portfolio add|sell|list|risk|history|remove|clear <code> [--qty N] [--price X] [--capital N] [--risk] [--json]   持仓台账   [本地]
+ths portfolio add|sell|list|risk|history|remove|clear <code> [--qty N] [--price X] [--stop X] [--capital N] [--risk] [--json]   持仓台账(建仓固化止损)   [本地]
+ths portfolio risk <code> [--stop X --save]   固化止损/目标/盈亏比(--save 上移止损)   [本地+行情]
 ths daily run [--codes a,b] [--refresh] [--min-n N] [--since N] [--candidates a,b,c] [--json]
-      每日监控+快照+复盘+池建议(学习回路)   [本地+行情]
+      每日监控+快照+复盘+池建议(学习回路)+方向环境(板块/资金/龙虎榜)+信号分级+破位追踪   [本地+行情]
 ths daily review [--since N] [--code X] [--min-n N] [--json]   复盘命中率统计   [本地]
 ths daily lessons [--json]    经验教训+待确认池建议   [本地]
 ths daily lesson-add "复盘文字" [--category X] [--code X]    手动记一条经验   [本地]

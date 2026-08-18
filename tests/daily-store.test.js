@@ -171,6 +171,42 @@ describe('经验 lessons', () => {
   });
 });
 
+describe('方向环境 direction（M2-1）', () => {
+  it('setDirection 写入并可读回；与 marketEnv 并列不互踩', () => {
+    const s = mk();
+    s.setMarketEnv('2026-08-17', { mood: '普涨强势' });
+    s.setDirection('2026-08-17', {
+      boardMood: { label: '强', topSector: '通信设备', topPct: 3.2 },
+      fundDir: { label: '进攻', positiveRatio: 0.7 },
+      lhbJoin: { label: '中性', count: 12, netSum: -1000 },
+    });
+    const f = s.loadSnapshotFile('2026-08-17');
+    expect(f.marketEnv.mood).toBe('普涨强势');
+    expect(f.direction.boardMood.label).toBe('强');
+    expect(f.direction.fundDir.label).toBe('进攻');
+  });
+
+  it('upsertSnapshot 保留已写入的 direction', () => {
+    const s = mk();
+    s.setDirection('2026-08-17', { boardMood: { label: '强' } });
+    s.upsertSnapshot('2026-08-17', SNAP('600519', '2026-08-17'));
+    expect(s.loadSnapshotFile('2026-08-17').direction.boardMood.label).toBe('强');
+  });
+
+  it('loadSnapshots 把 direction 并入每只股票（缺失时为空对象）', () => {
+    const s = mk();
+    s.setDirection('2026-08-17', { boardMood: { label: '强' } });
+    s.upsertSnapshot('2026-08-17', SNAP('600519', '2026-08-17', { dir: { boardLeader: '通信设备', dirCount: 1 } }));
+    s.upsertSnapshot('2026-08-14', SNAP('600519', '2026-08-14')); // 无 direction
+    const all = s.loadSnapshots();
+    const d17 = all.find(x => x.date === '2026-08-17');
+    expect(d17.direction.boardMood.label).toBe('强');
+    expect(d17.dir.boardLeader).toBe('通信设备');
+    const d14 = all.find(x => x.date === '2026-08-14');
+    expect(d14.direction).toEqual({});
+  });
+});
+
 describe('池建议 poolSuggestions', () => {
   it('add 自动编号、open 去重、markSuggestion 状态流转', () => {
     const s = mk();

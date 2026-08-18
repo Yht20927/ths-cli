@@ -72,15 +72,15 @@
 
 | 项 | 功能 | 为什么 | 落在哪 | 状态 |
 |---|---|---|---|---|
-| **M1-1** | **止损固化 + 破位追踪**（最高杠杆） | 补不足 1：止损从没被记下来是最大风控黑洞 | `lib/portfolio.js`（applyTrade 加 stop 字段）、`lib/commands/portfolio.js`（add 分支调 calcStopTarget）、`lib/cache.js`（positions 结构）、`lib/commands/daily.js`（提醒改用 stopPrice，破位红字告警 + 连续违规天数） | ⬜ |
-| M1-2 | 板块指数（881xxx）打"不可直接买入"标记 | 陷阱1：快照里 881129 通信设备在出"看多"，会误导当个股买 | `lib/commands/helpers.js`（inferMarket 扩展）、`lib/commands/daily.js` | ⬜ |
-| M1-3 | 信号矛盾检测 + 共振分级 | 补不足 4：信号升级"强看多/看多(存疑)/观望/看空" | `lib/summary.js`、`lib/score.js`、`lib/commands/analyze.js`、`lib/commands/daily.js` | ⬜ |
+| **M1-1** | **止损固化 + 破位追踪**（最高杠杆） | 补不足 1：止损从没被记下来是最大风控黑洞 | `lib/portfolio.js`（applyTrade 加 stop 字段）、`lib/commands/portfolio.js`（add 分支调 calcStopTarget，list/risk 用固化值，risk --stop --save 上移）、`lib/cache.js`（positions 结构）、`lib/commands/daily.js`（提醒改用 stopPrice，破位红字告警 + 连续违规天数写回） | ✅ 2026-08-18 |
+| M1-2 | 板块指数（881xxx）打"不可直接买入"标记 | 陷阱1：快照里 881129 通信设备在出"看多"，会误导当个股买 | `lib/commands/helpers.js`（isBoardIndex）、`lib/commands/daily.js`（isBoard 快照 + ⚠指数标记 + 建议跳过）、`lib/commands/analyze.js`（横幅）、`lib/commands/portfolio.js`（add 拒绝）、`lib/scanner.js`（跳过） | ✅ 2026-08-18 |
+| M1-3 | 信号矛盾检测 + 共振分级 | 补不足 4：信号升级"强看多/看多(存疑)/观望/看空" | `lib/signal.js`（新，classifySignal 纯函数）、`lib/summary.js`（buildSummary 加 signalGrade/conflicts）、`lib/commands/analyze.js`（评分区显示分级+矛盾）、`lib/commands/daily.js`（快照+报告）、`lib/daily-review.js`（signalGrade 桶） | ✅ 2026-08-18 |
 
 ### 里程碑 M2 —— 近 1 月（方向环）
 
 | 项 | 功能 | 为什么 | 落在哪 | 状态 |
 |---|---|---|---|---|
-| **M2-1** | **方向维度入每日回路**（最高杠杆） | 补不足 3：daily run 加 sectors/fundflow/lhb 取数 → 快照新增 `boardMood/fundDir/lhbJoin`，命中率桶扩展，复盘能回答"我方向选对没" | `lib/commands/daily.js`（取数步）、`lib/daily-review.js`（BUCKETS + valueOf）、快照 schema | ⬜ |
+| **M2-1** | **方向维度入每日回路**（最高杠杆） | 补不足 3：daily run 加 sectors/fundflow/lhb 取数 → 快照新增 `boardMood/fundDir/lhbJoin`，命中率桶扩展，复盘能回答"我方向选对没" | `lib/commands/daily.js`（fetchDirectionEnv + 每股票 dir 标签 + 方向环境报告区）、`lib/daily-review.js`（BUCKETS：boardMood/fundDir/lhbJoin/boardLeader/dirResonance）、`lib/daily-store.js`（setDirection + loadSnapshots 合并 direction） | ✅ 2026-08-18 |
 | M2-2 | 大盘趋势判定（不逆大盘落地） | 补不足 2：上证/创业板 K线，daily 存"上证是否站上 MA20、指数支撑/压力、涨跌家数 3 日趋势"；大盘破位标记"环境弱"，`position` 支持环境系数减半 | `lib/commands/helpers.js`（指数映射表）、`lib/commands/daily.js`、`lib/position.js` | ⬜ |
 | M2-3 | 从统计报表到可执行规则 | 补不足 6：按桶命中率自动生成"当[特征]→买/不买，3日命中 XX%（n=N）"，可标记采用/弃用，采用后进 `scan` 条件库 | `lib/daily-review.js`（rule 生成纯函数）、`lib/daily-store.js`、`lib/scanner.js` | ⬜ |
 
@@ -121,3 +121,4 @@
 ---
 
 *文档更新：2026-08-17 由炒股大师子代理分析产出；M1-1 与 M2-1 为最高杠杆项，建议优先。*
+*2026-08-18 实现：M1-1（止损固化+破位追踪）、M1-2（板块指数标记）、M1-3（信号分级）、M2-1（方向入回路）已落地并单测覆盖。下一步候选：M2-2 大盘趋势判定。*

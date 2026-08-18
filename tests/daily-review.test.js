@@ -255,6 +255,50 @@ describe('computeStats 命中率统计', () => {
   });
 });
 
+describe('方向特征桶（M2-1）', () => {
+  it('boardMood/fundDir/lhbJoin 按 direction 聚合；缺 direction/dir 跳过', () => {
+    const mk = (date, close, direction, dir) => S(date, { close, direction, dir });
+    const snaps = [
+      mk('2026-08-03', 10, { boardMood: { label: '强' }, fundDir: { label: '进攻' }, lhbJoin: { label: '强' } }, { boardLeader: '通信设备', fundTop: true, lhb: 100, dirCount: 3 }),
+      mk('2026-08-04', 11, { boardMood: { label: '强' }, fundDir: { label: '进攻' }, lhbJoin: { label: '强' } }, { boardLeader: null, fundTop: false, lhb: null, dirCount: 0 }),
+      mk('2026-08-05', 12, { boardMood: { label: '弱' }, fundDir: { label: '流出' }, lhbJoin: { label: '弱' } }, { boardLeader: null, fundTop: true, lhb: null, dirCount: 1 }),
+      mk('2026-08-06', 13, { boardMood: { label: '弱' }, fundDir: { label: '流出' }, lhbJoin: { label: '弱' } }, null), // 有方向但无个股 dir
+      mk('2026-08-07', 14, null, null), // 无方向数据
+      mk('2026-08-10', 15, null, null),
+    ];
+    const st = computeStats(snaps, { minN: 1 });
+    // 3 日窗口闭合 i∈{0..2}
+    expect(st.buckets.boardMood['强'].n3).toBe(2);
+    expect(st.buckets.boardMood['弱'].n3).toBe(1);
+    expect(st.buckets.fundDir['进攻'].n3).toBe(2);
+    expect(st.buckets.fundDir['流出'].n3).toBe(1);
+    expect(st.buckets.lhbJoin['强'].n3).toBe(2);
+    expect(st.buckets.lhbJoin['弱'].n3).toBe(1);
+    // dirResonance：i0 三重 / i1 无 / i2 一重
+    expect(st.buckets.dirResonance['2重+'].n3).toBe(1);
+    expect(st.buckets.dirResonance['无'].n3).toBe(1);
+    expect(st.buckets.dirResonance['1重'].n3).toBe(1);
+    // boardLeader：i0 龙头 / i1,i2 非龙头
+    expect(st.buckets.boardLeader['龙头'].n3).toBe(1);
+    expect(st.buckets.boardLeader['非龙头'].n3).toBe(2);
+  });
+
+  it('signalGrade 桶（M1-3）：signalLabel 聚合、缺字段跳过', () => {
+    const snaps = [
+      S('2026-08-03', { close: 10, signalLabel: '强看多' }),
+      S('2026-08-04', { close: 11, signalLabel: '强看多' }),
+      S('2026-08-05', { close: 12, signalLabel: '看多(存疑)' }),
+      S('2026-08-06', { close: 13 }),
+      S('2026-08-07', { close: 14 }),
+      S('2026-08-10', { close: 15 }),
+    ];
+    const st = computeStats(snaps, { minN: 1 });
+    // 3 日窗口闭合 i∈{0..2}：两条强看多 + 一条看多(存疑)
+    expect(st.buckets.signalGrade['强看多'].n3).toBe(2);
+    expect(st.buckets.signalGrade['看多(存疑)'].n3).toBe(1);
+  });
+});
+
 describe('generateSuggestions 池建议', () => {
   it('R1: 连续≥3日看空且 code 3日命中率<40% → 剔除', () => {
     // 8 条全看空但股票一路上涨 → hitRate3 = 0（<40%），且 n3=5 ≥ minN(5)
@@ -436,6 +480,22 @@ describe('generateSuggestions 池建议', () => {
     ];
     const sugs = generateSuggestions({ snaps, candidates: [{ code: '600519', name: '茅台' }] });
     expect(sugs.some(s => s.type === 'add' && s.code === '600519')).toBe(false);
+  });
+
+  it('M5: 板块指数（isBoard）快照不产生买卖建议（M1-2）', () => {
+    // 板块指数连续看空且命中率差 → 本会触发 R1 remove；但 isBoard 应被跳过
+    const snaps = [
+      S('2026-08-03', { code: '881129', close: 10, signal: '看空', isBoard: true }),
+      S('2026-08-04', { code: '881129', close: 11, signal: '看空', isBoard: true }),
+      S('2026-08-05', { code: '881129', close: 12, signal: '看空', isBoard: true }),
+      S('2026-08-06', { code: '881129', close: 13, signal: '看空', isBoard: true }),
+      S('2026-08-07', { code: '881129', close: 14, signal: '看空', isBoard: true }),
+      S('2026-08-10', { code: '881129', close: 15, signal: '看空', isBoard: true }),
+      S('2026-08-11', { code: '881129', close: 16, signal: '看空', isBoard: true }),
+      S('2026-08-12', { code: '881129', close: 17, signal: '看空', isBoard: true }),
+    ];
+    const sugs = generateSuggestions({ snaps });
+    expect(sugs.some(s => s.code === '881129')).toBe(false);
   });
 
   it('M4: 缺失 score 不落入"≤40"桶', () => {

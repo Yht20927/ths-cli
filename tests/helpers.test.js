@@ -10,6 +10,7 @@ import {
   fmtNum,
   toCsv,
   renderTable,
+  isBoardIndex,
 } from '../lib/commands/helpers.js';
 
 describe('escapeExpression', () => {
@@ -62,6 +63,24 @@ describe('inferMarket', () => {
   it('4/8 开头(北交所等)无法推断', () => {
     expect(inferMarket('830799')).toBeNull();
     expect(inferMarket('875266')).toBeNull(); // 港股/其他 → 需 --market
+  });
+});
+
+describe('isBoardIndex', () => {
+  it('88xxxx 板块指数为 true（不可直接买入）', () => {
+    expect(isBoardIndex('881129')).toBe(true);
+    expect(isBoardIndex('886100')).toBe(true);
+    expect(isBoardIndex('885000')).toBe(true);
+  });
+  it('真实个股/普通代码为 false', () => {
+    expect(isBoardIndex('600519')).toBe(false);
+    expect(isBoardIndex('000725')).toBe(false);
+    expect(isBoardIndex('300604')).toBe(false);
+  });
+  it('非 6 位代码为 false', () => {
+    expect(isBoardIndex('88112')).toBe(false);
+    expect(isBoardIndex('8811299')).toBe(false);
+    expect(isBoardIndex('')).toBe(false);
   });
 });
 
