@@ -112,6 +112,11 @@ function printHelp() {
   ths daily snapshot [--date YYYY-MM-DD] [--code X] [--json]     查看历史快照
   ths daily apply <Sid> [--yes]                   执行池建议（剔除/加入/减仓）
                                                  每日复盘闭环：分析落盘→3/5日回填命中→经验积累
+  ths watch [--pool watchlist|--codes a,b] [--interval N(30s)] [--once]
+       [--chase 7] [--drop -5] [--vol 3] [--until HH:MM] [--quiet] [--json]
+                                                 盘中实时追踪：轮询自选池，对照固化止损/
+                                                 支撑压力/涨跌停/量比/涨幅阈值告警（Ctrl+C 退出）
+  ths watch --once                              单次体检（脚本可用）[--json 输出结构化结果]
 
 通用选项:
   --json    输出原始 JSON（machine-readable）

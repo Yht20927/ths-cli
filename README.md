@@ -22,6 +22,7 @@
 - **龙虎榜**:`ths lhb` 营业部席位/机构游资,净额排序(Node 直连)
 - **F10 财务**:`ths fundamental <code>` 毛利率/ROE/营收净利增速/负债率 + 去年同期对比与点评(Node 直连)
 - **持仓台账**:`ths portfolio` 记录建仓/加仓/减仓 → 摊薄成本/浮动与已实现盈亏/**建仓即固化止损**/盈亏比;`daily run` 每日查破位并记连续违规天数(本地 JSON)
+- **盘中实时追踪**:`ths watch` 轮询自选池,对照**固化止损/支撑压力/涨跌停/量比/涨幅阈值**做**边沿触发**告警(🔴 破位/🟠 追高急跌/🟡 涨跌停放量),把"破止损必走"纪律从收盘后提前到盘中破位瞬间;`scripts/watch.sh` 后台常驻(前台 `node cli.js watch`,Ctrl+C 退出)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 - **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
@@ -88,6 +89,10 @@ ths daily lessons [--json]    经验教训+待确认池建议   [本地]
 ths daily lesson-add "复盘文字" [--category X] [--code X]    手动记一条经验   [本地]
 ths daily snapshot [--date D] [--code X] [--json]   查看历史快照   [本地]
 ths daily apply <Sid> [--yes]   执行池建议(剔除/加入/减仓)   [本地]
+ths watch [--pool watchlist|--codes a,b] [--interval N(30s)] [--once]
+       [--chase 7] [--drop -5] [--vol 3] [--until HH:MM] [--quiet] [--json]
+                              盘中实时追踪(固化止损/支撑/阈值边沿告警)   [Bridge+本地]
+ths watch --once              单次体检(脚本可用)   [Bridge+本地]
 ths help                         帮助
 ```
 
@@ -151,6 +156,9 @@ ths daily review --since 90                         # 复盘命中率统计
 ths daily lesson-add "完整共振才是买点" --category 策略 --code 000049
 ths daily snapshot --date 2026-08-17 --code 000049  # 查看某日某股快照
 ths daily apply S01 --yes                           # 执行池建议
+ths watch --once                                    # 盘中单次体检(自选池)
+ths watch --interval 30                             # 前台盯盘,盘中破止损/触阈值即 🔴/🟠 提醒
+scripts/watch.sh start 15                           # 后台常驻盯盘(日志 logs/watch.log)
 ```
 
 ## 参数说明
@@ -188,6 +196,7 @@ K 线数据缓存于 `data/cache/ths.json`(gitignore),避免重复打同花顺�
 - TTL:日/周/月/季 10 分钟,60/120 分钟 1 分钟,可在 `config.json` 的 `cache.ttlMinutes` 覆盖
 - `analyze` / `scan` / `backtest` 默认走缓存,`--refresh` 强制刷新
 - 自选股存于同一文件;`watchlist clear` 清空自选与 K 线缓存
+- **半截 K 线卫生**:盘中(<15:05)拉到的日 K 末根是"在途未收盘 bar",`backtest` 默认剔除它(close-to-close 只用已定型 bar,`--include-forming` 显式包含,应对 15:00–15:05 缓冲窗),`watch` 算支撑压力也剔除;`analyze`/`scan`/`daily` 保留它(盘中实时信号即期望语义)
 
 ## 每日学习回路(`ths daily`)
 

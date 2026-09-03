@@ -7,7 +7,7 @@
 #
 # 为 `ths` 和 `node cli.js` 提供: 命令、周期、选股条件、回测策略、watchlist 子命令补全。
 
-_ths_commands="search quote quotes kline trend turnover analyze compare scan watchlist backtest position market fundflow help"
+_ths_commands="search quote quotes kline trend turnover analyze compare scan watchlist backtest position market fundflow watch help"
 _ths_periods="day week month quarter 60min 120min"
 _ths_criteria="ma-bull ma-cross-up macd-golden macd-bull rsi-oversold rsi-overbought kdj-golden volume-break atr-range pattern score-gt"
 _ths_strategies="ma-cross rsi macd buy-hold"
@@ -42,6 +42,10 @@ _ths_comp() {
         add|remove) COMPREPLY=( $(compgen -W "" -- "$cur") ); return 0 ;;
         *) COMPREPLY=( $(compgen -W "$_ths_watch_actions" -- "$cur") ); return 0 ;;
       esac ;;
+    watch)
+      if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $(compgen -W "--interval --once --pool --codes --chase --drop --vol --until --quiet --json" -- "$cur") ); return 0
+      fi ;;
     scan)
       case "$prev" in
         --criterion) COMPREPLY=( $(compgen -W "$_ths_criteria" -- "$cur") ); return 0 ;;

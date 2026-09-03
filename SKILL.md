@@ -1,6 +1,6 @@
 ---
 name: ths-cli
-description: 同花顺行情分析 CLI — 搜索/实时行情/批量行情/6周期K线/分时/大盘成交额/技术分析(均线/MACD/KDJ/RSI/BOLL/ATR/ADX/CCI/WR/MFI/OBV/SAR/ROC/VWAP)/K线形态/支撑压力/多因子评分/选股扫描/自选股/策略回测/每日复盘学习回路(快照落盘+3/5日命中回填+经验积累)，内置资深炒股大师方法论：大盘情绪→板块选择→个股技术面→估值质地→横向对比→回测验证→仓位风控七步闭环 + 每日复盘沉淀。Bridge Framework（油猴 + WebSocket）。
+description: 同花顺行情分析 CLI — 搜索/实时行情/批量行情/6周期K线/分时/大盘成交额/技术分析(均线/MACD/KDJ/RSI/BOLL/ATR/ADX/CCI/WR/MFI/OBV/SAR/ROC/VWAP)/K线形态/支撑压力/多因子评分/选股扫描/自选股/策略回测/每日复盘学习回路(快照落盘+3/5日命中回填+经验积累)，内置资深炒股大师方法论：大盘情绪→板块选择→个股技术面→估值质地→横向对比→回测验证→仓位风控七步闭环 + 每日复盘沉淀 + 盘中实时追踪（ths watch：固化止损/支撑/涨跌停/量比/涨幅≥7% 边沿告警）。Bridge Framework（油猴 + WebSocket）。
 ---
 
 # 同花顺 CLI 炒股分析大师课
@@ -46,6 +46,7 @@ description: 同花顺行情分析 CLI — 搜索/实时行情/批量行情/6周
 | `ths position` | 仓位计算（止损额→仓位 + 盈亏比） | ⑤ 风控 |
 | `ths portfolio` | 持仓台账（记录买卖→盈亏/止损/复盘） | ⑤⑥ 全程 |
 | `ths watchlist` | 自选池管理 + 实时总览 | 全程 |
+| `ths watch` | 盘中盯盘：固化止损/支撑/涨跌停/量比/涨幅≥7% 边沿告警 | ⑤ 风控·盘中 |
 
 ---
 
@@ -221,6 +222,8 @@ ths backtest 600795 --strategy ma-cross --stop-loss 2 --slippage 0.001 --limit-c
 3. 策略连续失效就用 `ths backtest` 复检换打法，别死扛同一套
 
 **每日学习回路（自动化复盘）**：详见**第 8 步**。每天 `npm run daily` 跑一遍，复盘就自动闭环了。
+
+**盘中纪律（`ths watch`）**：`daily` 是**收盘后**的复盘，`watch` 是**盘中**把第 1/7 步防线实时化——固化止损盘中跌破**立刻 🔴 亮灯**、贴近压力/涨超 7% 🟠 提醒、量比/涨跌停 🟡 提示。**它只提醒不替你决策**，纪律仍由你执行（SKILL 红线不变）。前台 `node cli.js watch`（Ctrl+C 退出）或后台 `scripts/watch.sh start`（日志 `logs/watch.log`）。
 
 **用工具记账**：分析只是前半场，后半场靠台账——
 ```bash
