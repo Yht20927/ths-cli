@@ -48,6 +48,7 @@ description: 同花顺行情分析 CLI — 搜索/实时行情/批量行情/6周
 | `ths watchlist` | 自选池管理 + 实时总览 | 全程 |
 | `ths watch` | 盘中盯盘：固化止损/支撑/涨跌停/量比/涨幅≥7% 边沿告警 | ⑤ 风控·盘中 |
 | `ths risk` | 组合风险画像：相关矩阵/有效独立标的/集中度/组合波动/ATR% | ⑤ 风控·组合 |
+| `ths index` | 大盘指数趋势：上证/深成/创业板 是否站上 MA20、支撑压力 | ① 大盘 |
 
 ---
 
@@ -81,6 +82,7 @@ ths lhb --top 10                     # 龙虎榜：今天资金在谁身上（�
 ths search 茅台                 # 找股票（名称/代码/拼音）
 ths scan --universe 券商         # 关键词圈板块：扫一批券商股
 ths scan --universe 银行 --criterion ma-bull   # 圈板块 + 直接筛
+ths scan --pool watchlist --only-hot --criterion ma-bull,macd-golden  # 大盘普跌时自动抑制做多(不逆大盘)
 ths watchlist add 600519 --name 贵州茅台       # 进自选池
 ths watchlist prices            # 随时看自选池实时估值
 ```
@@ -173,6 +175,8 @@ ths compare --codes 600795,000100,600812,601162,601099
 ```bash
 ths backtest 600795 --strategy ma-cross --fast 5 --slow 20 --count 500 --slippage 0.001 --limit-check
 ths backtest 600795 --strategy rsi --count 500 --slippage 0.001 --limit-check
+ths backtest 600795 --strategy score --count 500 --slippage 0.001 --limit-check      # 回测自己的综合评分打法
+ths backtest 600795 --strategy resonance --count 500 --slippage 0.001 --limit-check  # 共振=评分+多头+MACD非空头+ADX
 ths backtest 600795 --strategy buy-hold --count 500   # 对照基准
 ```
 

@@ -78,18 +78,21 @@ function printHelp() {
   ths compare [--codes a,b,c | --pool watchlist] [--period day] [--count 250] [--json]
                                                  跨股横向对比（紧凑摘要）
   ths scan --criterion ma-bull,macd-golden [--pool watchlist|--codes a,b|--universe 关键词]
-       [--min-score N] [--lookback N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json]
-                                                 选股扫描（11 种条件）
+       [--min-score N] [--lookback N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json] [--only-hot]
+                                                 选股扫描（11 种条件；--only-hot 大盘普跌时抑制做多）
   ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]
                                                  自选股管理 + 实时价格总览
-  ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
-       [--fast N] [--slow N] [--period day] [--count 500] [--fee 0.0005]
+  ths backtest <code> --strategy ma-cross|rsi|macd|score|resonance|buy-hold
+       [--fast N] [--slow N] [--score-buy 60] [--score-sell 40] [--score-min 60] [--adx 25]
+       [--period day] [--count 500] [--fee 0.0005]
        [--stop-loss N] [--slippage X] [--limit-check] [--json]
-                                                 策略回测（收益/回撤/胜率/夏普/基准对比）
+                                                 策略回测（含实战打分/共振策略：回测自己的打法）
   ths position <code> --risk N [--stop X] [--target X] [--atr-mult 2] [--capital N]
        [--price X] [--period day] [--count 250] [--json]
                                                  仓位计算（止损额→仓位 + 盈亏比，SKILL 铁律落地）
   ths market [--json]                           大盘情绪（三大指数 + 涨跌家数 + 市场温度）
+  ths index [1A0001|399001|399006] [--json]      大盘指数趋势（上证/深成/创业板 MA20/支撑压力，
+                                                 Node 直连）——"不逆大盘"第一关
   ths fundflow [--top 10] [--codes a,b] [--json] 资金流排行（主力净流入方向）
   ths sectors [--type industry|concept] [--top N] [--sort pct|netIn|amount] [--json]
                                                  板块强弱排名（行业/概念，代码可 analyze 深挖）

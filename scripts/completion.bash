@@ -7,10 +7,10 @@
 #
 # 为 `ths` 和 `node cli.js` 提供: 命令、周期、选股条件、回测策略、watchlist 子命令补全。
 
-_ths_commands="search quote quotes kline trend turnover analyze compare scan watchlist backtest position market fundflow watch risk help"
+_ths_commands="search quote quotes kline trend turnover analyze compare scan watchlist backtest position market fundflow index watch risk help"
 _ths_periods="day week month quarter 60min 120min"
 _ths_criteria="ma-bull ma-cross-up macd-golden macd-bull rsi-oversold rsi-overbought kdj-golden volume-break atr-range pattern score-gt"
-_ths_strategies="ma-cross rsi macd buy-hold"
+_ths_strategies="ma-cross rsi macd score resonance buy-hold"
 _ths_watch_actions="add remove list prices clear"
 _ths_flags="--json --csv --compact --refresh --no-log --help"
 

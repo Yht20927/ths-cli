@@ -81,7 +81,7 @@
 | 项 | 功能 | 为什么 | 落在哪 | 状态 |
 |---|---|---|---|---|
 | **M2-1** | **方向维度入每日回路**（最高杠杆） | 补不足 3：daily run 加 sectors/fundflow/lhb 取数 → 快照新增 `boardMood/fundDir/lhbJoin`，命中率桶扩展，复盘能回答"我方向选对没" | `lib/commands/daily.js`（fetchDirectionEnv + 每股票 dir 标签 + 方向环境报告区）、`lib/daily-review.js`（BUCKETS：boardMood/fundDir/lhbJoin/boardLeader/dirResonance）、`lib/daily-store.js`（setDirection + loadSnapshots 合并 direction） | ✅ 2026-08-18 |
-| M2-2 | 大盘趋势判定（不逆大盘落地） | 补不足 2：上证/创业板 K线，daily 存"上证是否站上 MA20、指数支撑/压力、涨跌家数 3 日趋势"；大盘破位标记"环境弱"，`position` 支持环境系数减半 | `lib/commands/helpers.js`（指数映射表）、`lib/commands/daily.js`、`lib/position.js` | ⬜ |
+| M2-2 | 大盘趋势判定（不逆大盘落地） | 补不足 2：上证/创业板指数日 K（Node 直连 v6/line，quota 端点不服务指数）→ daily 存"是否站上 MA20/均线排列/支撑压力"并入快照与报告；`ths index` 手动查看；`scan --only-hot` 大盘普跌抑制做多 | `lib/index-kline.js`（指数K线+趋势纯函数）、`lib/commands/indices.js`（`ths index`）、`lib/commands/daily.js`、`lib/commands/scan.js` | ✅ 2026-09-03 |
 | M2-3 | 从统计报表到可执行规则 | 补不足 6：按桶命中率自动生成"当[特征]→买/不买，3日命中 XX%（n=N）"，可标记采用/弃用，采用后进 `scan` 条件库 | `lib/daily-review.js`（rule 生成纯函数）、`lib/daily-store.js`、`lib/scanner.js` | ⬜ |
 
 ### 里程碑 M3 —— 1-3 月（策略环）
@@ -95,13 +95,17 @@
 ### 里程碑 M4 —— 实时环（Slice 1，2026-09-03 ✅）
 
 > 来源：2026-09-03 用户拍板加"量化 + 实时追踪"，推翻原克制清单第 4 条"不做分时级盯盘告警"（已改写为限定版，见下）。
-> Slice 1 = 实时能力落地（M4-1/M4-2，✅）；**Slice 2 组合/风控层量化 `ths risk`**（M4-3，✅）；**Slice 3 因子/选股广度量化（打分/共振进回测 + 方向门控）** 为候选下一步。
+> Slice 1 = 实时能力落地（M4-1/M4-2，✅）；Slice 2 组合/风控量化（M4-3，✅）；
+> Slice 3 因子/选股广度量化（M4-4 打分/共振进回测 + M4-5 scan 方向门控，✅）；
+> M2-2 大盘趋势判定（✅，见 M2 表）。后续候选：方向因子历史回测（依赖每日回路积累）、position 环境系数联动。
 
 | 项 | 功能 | 为什么 | 落在哪 | 状态 |
 |---|---|---|---|---|
 | **M4-1** | **盘中实时追踪 `ths watch`** | 保命环**执行时机缺口**：止损纪律目前只在**收盘后** daily run 亮灯，把"破止损必走"提前到**盘中破位瞬间**。只对固化阈值边沿提醒，不生成新信号 | `lib/trading-hours.js`（时段）、`lib/watch-engine.js`（告警引擎）、`lib/commands/watch.js`、`scripts/watch.sh`、`lib/commands/index.js`、`cli.js` | ✅ 2026-09-03 |
 | **M4-2** | **半截 K 线数据卫生** | 盘中(<15:05)在途 bar 被当完整历史缓存会污染回测/参照位 | `lib/cache.js`（`isFormingBarNow`/`closedBars`/`excludeForming`）、`lib/commands/backtest.js`（默认剔除 + `--include-forming`） | ✅ 2026-09-03 |
 | **M4-3** | **组合/风控层量化 `ths risk`**（Slice 2） | 用户拍板"组合/风控层量化"落地：把自选池当**纸面组合**算相关性/有效独立标的/集中度(HHI)/组合波动/单票 ATR% 波动预算，标出 ≥0.7 高相关对与超 ≤20% 仓位铁律的标的 | `lib/portfolio-risk.js`、`lib/commands/risk.js`、`lib/commands/index.js`、`cli.js` | ✅ 2026-09-03 |
+| **M4-4** | **打分/共振策略进回测**（Slice 3a） | 补缺口 5"回测两套方法论"：回测自己的实战打法（评分上穿 60 买/破 40 卖；共振=评分≥60+MA多头+MACD非空头+ADX≥25，口径同 daily-review） | `lib/backtest.js`（score/resonance 策略）、`lib/factor-series.js`（逐bar因子/共振序列）、`lib/commands/backtest.js` | ✅ 2026-09-03 |
+| **M4-5** | **scan 方向门控**（Slice 3b） | 因子/选股广度量化第一步：`scan --only-hot` 大盘普跌(❄️)时抑制做多类命中（不逆大盘落到选股） | `lib/commands/scan.js`、`lib/scanner.js`（marketCold gate） | ✅ 2026-09-03 |
 
 ---
 
@@ -134,4 +138,5 @@
 *文档更新：2026-08-17 由炒股大师子代理分析产出；M1-1 与 M2-1 为最高杠杆项，建议优先。*
 *2026-08-18 实现：M1-1（止损固化+破位追踪）、M1-2（板块指数标记）、M1-3（信号分级）、M2-1（方向入回路）已落地并单测覆盖。下一步候选：M2-2 大盘趋势判定。*
 *2026-09-03 实现：M4-1 盘中实时追踪 `ths watch` + M4-2 半截 K 线数据卫生（Slice 1；测试全量 300 绿 + 盘中实盘验证）；克制清单第 4 条改写为限定版。*
-*2026-09-03（续）实现：M4-3 组合/风控层量化 `ths risk`（Slice 2；相关性/独立标的/集中度/组合波动/ATR%，实弹验证 京东方×TCL ρ=0.749 高相关）。下一步候选：M2-2 大盘趋势 / Slice 3 因子/选股广度量化。*
+*2026-09-03（续）实现：M4-3 组合/风控层量化 `ths risk`（Slice 2；相关性/独立标的/集中度/组合波动/ATR%，实弹验证 京东方×TCL ρ=0.749 高相关）。*
+*2026-09-03（再续）实现：M2-2 大盘趋势判定（`ths index` + daily 指数趋势入库/报告；实测 上证站上MA20 而 创业板 -5.67% 空头）、M4-4 打分/共振策略进回测（`ths backtest --strategy score|resonance`，实测 000725 score +63.9% 跑赢持有）、M4-5 scan --only-hot 方向门控。下一步候选：position 环境系数联动 / 方向因子历史回测。*

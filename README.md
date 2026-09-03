@@ -13,7 +13,7 @@
 - **跨股对比**:`ths compare` 一次横向对比多只的评分/信号/形态/支撑压力
 - **选股扫描**:11 种条件(金叉/放量突破/均线多头/超卖…),池来源支持自选股/代码/`--universe 关键词`
 - **自选股**:本地管理,无需登录,`prices` 实时总览
-- **策略回测**:ma-cross / rsi / macd / buy-hold,输出收益/回撤/胜率/盈亏比/夏普,支持 ATR 止损/滑点/一字板约束/buy-hold 自动对比
+- **策略回测**:ma-cross / rsi / macd / **score(综合评分) / resonance(共振)** / buy-hold,输出收益/回撤/胜率/盈亏比/夏普,支持 ATR 止损/滑点/一字板约束/buy-hold 自动对比——可**回测自己的实战打分/共振打法**,不只测简单均线策略
 - **仓位计算**:`ths position` 按"目标止损额 ÷ 止损距离%"反推仓位(SKILL 仓位铁律落地),自动取支撑位与 ATR×N 止损中更远者防扫损,并输出**盈亏比**(目标空间 ÷ 止损空间,压力位自动取,`--target` 可手动指定)
 - **大盘情绪**:`ths market` 三大指数快照 + 涨跌家数 + 市场温度(需油猴 v1.2.0)
 - **资金流**:`ths fundflow` 主力净流入排行(需油猴 v1.2.0)
@@ -24,6 +24,8 @@
 - **持仓台账**:`ths portfolio` 记录建仓/加仓/减仓 → 摊薄成本/浮动与已实现盈亏/**建仓即固化止损**/盈亏比;`daily run` 每日查破位并记连续违规天数(本地 JSON)
 - **盘中实时追踪**:`ths watch` 轮询自选池,对照**固化止损/支撑压力/涨跌停/量比/涨幅阈值**做**边沿触发**告警(🔴 破位/🟠 追高急跌/🟡 涨跌停放量),把"破止损必走"纪律从收盘后提前到盘中破位瞬间;`scripts/watch.sh` 后台常驻(前台 `node cli.js watch`,Ctrl+C 退出)
 - **组合/风控画像**:`ths risk` 把自选池/指定标的当**纸面组合**算:相关矩阵+**有效独立标的数**、集中度(HHI)、组合波动(日/年化)、单票 ATR% 波动预算,并标出 **≥0.7 高相关对**与**超 ≤20% 仓位铁律**的标的(纯本地离线)
+- **大盘趋势判定**:`ths index` 看 上证/深成/创业板 是否站上 MA20、均线排列、支撑压力、近5日涨跌(Node 直连同花顺指数日K)——"不逆大盘"第一关;`daily run` 报告与快照并入指数趋势
+- **选股方向门控**:`ths scan --only-hot` 大盘**普跌弱势**时抑制做多类命中(不逆大盘落到选股)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 - **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
@@ -68,11 +70,14 @@ ths analyze <code> [--period ...] [--count 250] [--market N] [--json] [--compact
                                                      K线技术分析(全指标+形态+支撑压力+评分+估值)
 ths compare [--codes a,b,c|--pool watchlist] [--json]   跨股横向对比
 ths scan --criterion macd-golden [--pool watchlist|--codes a,b|--universe 关键词]
-       [--min-score N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json]   选股扫描
+       [--min-score N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json] [--only-hot]
+                                                                                       选股扫描(--only-hot 大盘普跌抑制做多)
+ths index [1A0001|399001|399006] [--json]    大盘指数趋势(MA20/支撑压力/近5日)   [Node直连]
 ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]   自选股(含价格总览)
-ths backtest <code> --strategy ma-cross|rsi|macd|buy-hold
-       [--fast N] [--slow N] [--count 500] [--fee 0.0005]
-       [--stop-loss N] [--slippage X] [--limit-check] [--json]   策略回测
+ths backtest <code> --strategy ma-cross|rsi|macd|score|resonance|buy-hold
+       [--fast N] [--slow N] [--score-buy 60] [--score-sell 40] [--score-min 60] [--adx 25]
+       [--count 500] [--fee 0.0005]
+       [--stop-loss N] [--slippage X] [--limit-check] [--json]   策略回测(含实战打分/共振)
 ths position <code> --risk N [--stop X] [--target X] [--atr-mult 2] [--capital N]
        [--price X] [--period day] [--count 250] [--json]   仓位计算(止损额→仓位+盈亏比)
 ths market [--json]    大盘情绪(三大指数+涨跌家数+市场温度)   [油猴 v1.2.0]
@@ -163,6 +168,9 @@ ths watch --once                                    # 盘中单次体检(自选�
 ths watch --interval 30                             # 前台盯盘,盘中破止损/触阈值即 🔴/🟠 提醒
 scripts/watch.sh start 15                           # 后台常驻盯盘(日志 logs/watch.log)
 ths risk --codes 000725,000100                       # 组合相关性/集中度画像(纸面组合)
+ths index                                            # 上证/深成/创业板 MA20 趋势(不逆大盘)
+ths backtest 000725 --strategy resonance --count 300 # 用共振回测自己的打法
+ths scan --pool watchlist --only-hot --criterion ma-bull   # 大盘普跌时抑制做多
 ```
 
 ## 参数说明

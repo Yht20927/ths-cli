@@ -25,8 +25,8 @@ function sineWave() {
 }
 
 describe('STRATEGIES 注册', () => {
-  it('包含 4 个策略', () => {
-    expect(Object.keys(STRATEGIES)).toEqual(['ma-cross', 'rsi', 'macd', 'buy-hold']);
+  it('包含 6 个策略', () => {
+    expect(Object.keys(STRATEGIES)).toEqual(['ma-cross', 'rsi', 'macd', 'score', 'resonance', 'buy-hold']);
   });
 });
 
@@ -158,5 +158,60 @@ describe('回测增强：ATR 止损 / 滑点 / 一字板约束', () => {
     const r0 = backtest(s, 'buy-hold', {}, { fee: 0, slippage: 0 });
     expect(r.totalReturnPct).toBeLessThan(r0.totalReturnPct);
     expect(r.buyHoldReturnPct).toBeLessThan(r0.buyHoldReturnPct);
+  });
+});
+
+// 实战打分 / 共振策略（需 volume 参与评分）
+function bullSeries(n = 200, step = 0.0035, vol = 2e6) {
+  const out = [];
+  let p = 100;
+  const d0 = Date.UTC(2024, 0, 1);
+  for (let i = 0; i < n; i++) {
+    const dt = new Date(d0 + i * 86400000).toISOString().slice(0, 10);
+    out.push({ date: dt, open: p, high: p * (1 + step * 0.6), low: p * (1 - step * 0.6), close: p, volume: vol });
+    p *= 1 + step;
+  }
+  return out;
+}
+
+describe('score / resonance 策略（实战打分可回测）', () => {
+  it('稳步多头：score 上穿 60 → 至少 1 笔且盈利', () => {
+    const r = backtest(bullSeries(), 'score', {}, { fee: 0.0005 });
+    expect(r.numTrades).toBeGreaterThanOrEqual(1);
+    expect(r.totalReturnPct).toBeGreaterThan(0);
+    expect(r.strategy).toBe('score');
+  });
+
+  it('score buy<=sell 报错', () => {
+    expect(() => makeSignals(bullSeries(120), 'score', { buy: 40, sell: 60 })).toThrow(/buy.*sell/);
+  });
+
+  it('稳步多头：共振触发 ≥1 笔（共振窗口持仓到底由末尾强平收尾）', () => {
+    const r = backtest(bullSeries(), 'resonance', {}, { fee: 0.0005 });
+    expect(r.numTrades).toBeGreaterThanOrEqual(1);
+    expect(r.totalReturnPct).toBeGreaterThan(0);
+    expect(r.params.scoreBuy).toBe(60);
+    expect(r.params.adxMin).toBe(25);
+  });
+
+  it('单边下跌：score 不达标 → 0 笔交易', () => {
+    const n = 200;
+    const out = [];
+    let p = 100;
+    const d0 = Date.UTC(2024, 0, 1);
+    for (let i = 0; i < n; i++) {
+      const dt = new Date(d0 + i * 86400000).toISOString().slice(0, 10);
+      out.push({ date: dt, open: p, high: p * 1.002, low: p * 0.998, close: p, volume: 2e6 });
+      p *= 0.996;
+    }
+    const r = backtest(out, 'score', {}, { fee: 0.0005 });
+    expect(r.numTrades).toBe(0);
+  });
+
+  it('makeSignals(resonance) 与 bars 等长且取值合法', () => {
+    const s = makeSignals(bullSeries(150), 'resonance');
+    expect(s).toHaveLength(150);
+    expect(s.every(v => v === -1 || v === 0 || v === 1)).toBe(true);
+    expect(s.includes(1)).toBe(true);
   });
 });
