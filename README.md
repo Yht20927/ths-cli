@@ -23,6 +23,7 @@
 - **F10 财务**:`ths fundamental <code>` 毛利率/ROE/营收净利增速/负债率 + 去年同期对比与点评(Node 直连)
 - **持仓台账**:`ths portfolio` 记录建仓/加仓/减仓 → 摊薄成本/浮动与已实现盈亏/**建仓即固化止损**/盈亏比;`daily run` 每日查破位并记连续违规天数(本地 JSON)
 - **盘中实时追踪**:`ths watch` 轮询自选池,对照**固化止损/支撑压力/涨跌停/量比/涨幅阈值**做**边沿触发**告警(🔴 破位/🟠 追高急跌/🟡 涨跌停放量),把"破止损必走"纪律从收盘后提前到盘中破位瞬间;`scripts/watch.sh` 后台常驻(前台 `node cli.js watch`,Ctrl+C 退出)
+- **组合/风控画像**:`ths risk` 把自选池/指定标的当**纸面组合**算:相关矩阵+**有效独立标的数**、集中度(HHI)、组合波动(日/年化)、单票 ATR% 波动预算,并标出 **≥0.7 高相关对**与**超 ≤20% 仓位铁律**的标的(纯本地离线)
 - **本地缓存**:K 线数据落到 `data/cache/ths.json`,重复分析不重复打接口(避免 WAF 风控)
 - **股票名称**:quote/analyze/compare/scan 自动显示股票名(本地缓存,search 解析)
 
@@ -93,6 +94,8 @@ ths watch [--pool watchlist|--codes a,b] [--interval N(30s)] [--once]
        [--chase 7] [--drop -5] [--vol 3] [--until HH:MM] [--quiet] [--json]
                               盘中实时追踪(固化止损/支撑/阈值边沿告警)   [Bridge+本地]
 ths watch --once              单次体检(脚本可用)   [Bridge+本地]
+ths risk [--pool watchlist|--codes a,b] [--count N(120)] [--weights A=0.5,B=0.3] [--json]
+                              组合风控画像(相关/独立标的/集中度/波动)   [本地+行情]
 ths help                         帮助
 ```
 
@@ -159,6 +162,7 @@ ths daily apply S01 --yes                           # 执行池建议
 ths watch --once                                    # 盘中单次体检(自选池)
 ths watch --interval 30                             # 前台盯盘,盘中破止损/触阈值即 🔴/🟠 提醒
 scripts/watch.sh start 15                           # 后台常驻盯盘(日志 logs/watch.log)
+ths risk --codes 000725,000100                       # 组合相关性/集中度画像(纸面组合)
 ```
 
 ## 参数说明

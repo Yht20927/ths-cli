@@ -117,6 +117,9 @@ function printHelp() {
                                                  盘中实时追踪：轮询自选池，对照固化止损/
                                                  支撑压力/涨跌停/量比/涨幅阈值告警（Ctrl+C 退出）
   ths watch --once                              单次体检（脚本可用）[--json 输出结构化结果]
+  ths risk [--pool watchlist|--codes a,b] [--count N(120)] [--weights A=0.5,B=0.3] [--json]
+                                                组合风控画像：相关矩阵/有效独立标的/
+                                                集中度(HHI)/组合波动/单票ATR%/超重&高相关提示
 
 通用选项:
   --json    输出原始 JSON（machine-readable）
