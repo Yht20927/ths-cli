@@ -29,7 +29,10 @@ afterEach(() => {
 
 function seedValid() {
   fs.writeFileSync(cacheFile, JSON.stringify({
-    version: 2, kline: { k: { bars: [] } }, watchlist: [{ code: '000725' }], names: {}, positions: [],
+    version: 3, kline: { k: { bars: [] } },
+  }));
+  fs.writeFileSync(cacheFile.replace(/\.json$/, '.state.json'), JSON.stringify({
+    version: 1, watchlist: [{ code: '000725' }], names: {}, positions: [],
   }));
   fs.writeFileSync(path.join(dailyDir, 'snapshots', '2026-10-18.json'), JSON.stringify({
     date: '2026-10-18', marketEnv: {}, direction: {}, stocks: { '000725': { code: '000725' } },
@@ -55,7 +58,8 @@ describe('ths data verify', () => {
     const res = await verify();
     expect(res.ok).toBe(true);
     expect(res.errors).toBe(0);
-    expect(res.checks.some(c => c.item === 'JSON 缓存' && c.status === 'ok')).toBe(true);
+    expect(res.checks.some(c => c.item === 'K线缓存' && c.status === 'ok')).toBe(true);
+    expect(res.checks.some(c => c.item === '用户状态' && c.status === 'ok')).toBe(true);
     expect(res.checks.some(c => c.item === '每日快照' && c.status === 'ok')).toBe(true);
     expect(res.checks.some(c => c.item === '实时 JSONL' && c.status === 'ok')).toBe(true);
   });
@@ -65,7 +69,7 @@ describe('ths data verify', () => {
     fs.writeFileSync(cacheFile, '{bad');
     const res = await verify();
     expect(res.ok).toBe(false);
-    expect(res.checks.some(c => c.item === 'JSON 缓存' && c.status === 'error')).toBe(true);
+    expect(res.checks.some(c => c.item === 'K线缓存' && c.status === 'error')).toBe(true);
   });
 
   it('损坏快照 → error', async () => {

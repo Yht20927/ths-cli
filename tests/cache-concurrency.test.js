@@ -68,6 +68,32 @@ describe('KlineCache 多实例合并', () => {
   });
 });
 
+describe('旧版 ths.json 迁移', () => {
+  it('watchlist/names/positions 迁移到 state sidecar，K线写回后主文件不再带用户数据', () => {
+    fs.writeFileSync(file, JSON.stringify({
+      version: 1,
+      kline: {},
+      watchlist: [{ code: '600519', name: '贵州茅台' }],
+      names: { '600519': '贵州茅台' },
+      positions: [{ code: '600519', qty: 100, avgCost: 1000, trades: [] }],
+    }));
+    const c = new KlineCache(file);
+    expect(c.watchlistList()).toHaveLength(1);
+    expect(c.getName('600519')).toBe('贵州茅台');
+    expect(c.positionsList()).toHaveLength(1);
+
+    const stateFile = file.replace(/\.json$/, '.state.json');
+    expect(fs.existsSync(stateFile)).toBe(true);
+
+    c.setKline('k', '17', [BAR], 1);
+    const main = JSON.parse(fs.readFileSync(file, 'utf8'));
+    expect(main.version).toBe(3);
+    expect(main.watchlist).toBeUndefined();
+    expect(main.names).toBeUndefined();
+    expect(main.positions).toBeUndefined();
+  });
+});
+
 describe('坏文件隔离', () => {
   it('损坏 JSON 被隔离，不静默覆盖原文件', () => {
     fs.writeFileSync(file, '{not-json');
@@ -75,9 +101,13 @@ describe('坏文件隔离', () => {
     expect(c.watchlistList()).toHaveLength(0);
     const archived = fs.readdirSync(dir).filter(n => n.includes('.corrupt-'));
     expect(archived).toHaveLength(1);
-    // 后续写入创建新文件
+    // 自选股写入独立 state sidecar；K线写入才重建主文件
     c.watchlistAdd({ code: '600519' });
+    const stateFile = file.replace(/\.json$/, '.state.json');
+    expect(fs.existsSync(stateFile)).toBe(true);
+    expect(JSON.parse(fs.readFileSync(stateFile, 'utf8')).watchlist).toHaveLength(1);
+    c.setKline('k', '17', [BAR], 1);
     expect(fs.existsSync(file)).toBe(true);
-    expect(JSON.parse(fs.readFileSync(file, 'utf8')).version).toBe(2);
+    expect(JSON.parse(fs.readFileSync(file, 'utf8')).version).toBe(3);
   });
 });

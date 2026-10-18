@@ -1180,8 +1180,10 @@ daily run 的指标卡/指数 spark、HTML/Markdown 报告。
 - `KlineCache` / `DailyStore` 的写路径改为**锁内重新读盘 → 合并 → 原子写回**，
   多进程并发不再丢更新；长驻实例通过 mtime 感知外部写入。
 - 损坏 JSON 自动重命名为 `.corrupt-<ts>`，不静默覆盖。
-- 新增 `ths data verify`（缓存/快照/经验/JSONL 校验）与 `ths data backup`（递归备份 data/）。
-- 测试全量 **477 用例通过**（含多实例并发合并）。
+- **用户状态拆分**：自选/名称/持仓迁到 `data/state.json`，K线留在 `data/cache/ths.json`；
+  旧版 `ths.json` 自动迁移，`scripts/cache.sh` 同步支持 split 布局。
+- 新增 `ths data verify`（缓存/状态/快照/经验/JSONL 校验）与 `ths data backup`（递归备份 data/）。
+- 测试全量 **478 用例通过**（含多实例并发合并与迁移）。
 
 ### Batch 5 ⬜
 
@@ -1202,3 +1204,4 @@ daily run 的指标卡/指数 spark、HTML/Markdown 报告。
 | v1.6 | 2026-10-18 | `report portfolio`；报告四件套（daily/review/backtest/risk/portfolio）；448 测试通过 |
 | v1.7 | 2026-10-18 | 告警冷却 `--cooldown`；452 测试通过 |
 | v1.8 | 2026-10-18 | 原子写/文件锁/读改写合并/损坏隔离；`data verify/backup`；477 测试通过 |
+| v1.9 | 2026-10-18 | 用户状态拆分到 `data/state.json`（自选/名称/持仓），旧缓存自动迁移；478 测试通过 |

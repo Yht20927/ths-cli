@@ -267,10 +267,13 @@ ths scan --pool watchlist --only-hot --criterion ma-bull   # 大盘普跌时抑�
 ## 本地缓存
 
 K 线数据缓存于 `data/cache/ths.json`(gitignore),避免重复打同花顺接口触发风控。
+自选股/名称/持仓台账独立存于 `data/state.json`,不再随 4MB 级 K 线缓存全量重写。
 
 - TTL:日/周/月/季 10 分钟,60/120 分钟 1 分钟,可在 `config.json` 的 `cache.ttlMinutes` 覆盖
 - `analyze` / `scan` / `backtest` 默认走缓存,`--refresh` 强制刷新
-- 自选股存于同一文件;`watchlist clear` 清空自选与 K 线缓存
+- `watchlist clear` 清空自选/名称与 K 线缓存，保留持仓台账
+- 写入统一走“锁 → 重新读盘 → 合并 → 唯一 tmp → fsync → rename”；缓存/快照/经验损坏会自动隔离为 `.corrupt-<ts>`
+- 数据自检/备份：`ths data verify` / `ths data backup`
 - **半截 K 线卫生**:盘中(<15:05)拉到的日 K 末根是"在途未收盘 bar",`backtest` 默认剔除它(close-to-close 只用已定型 bar,`--include-forming` 显式包含,应对 15:00–15:05 缓冲窗),`watch` 算支撑压力也剔除;`analyze`/`scan`/`daily` 保留它(盘中实时信号即期望语义)
 
 ## 每日学习回路(`ths daily`)
@@ -333,7 +336,7 @@ token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保
 ### 开发
 
 ```bash
-npm test            # vitest(477 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
+npm test            # vitest(478 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```

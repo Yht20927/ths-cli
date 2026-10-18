@@ -127,7 +127,7 @@
 |---|---|---|---|
 | S0 | 止血：可信度 + 数据安全 | watch 阈值接线/状态恢复、复盘桶渲染与样本口径、半截 K 线、RSI/MFI 平盘、持仓空价、成交额重复；台账/缓存拆分、锁、严格写、审计 JSONL | 🟡 已修 watch 阈值/方向桶/启动告警、RSI/MFI 平盘、持仓空价、成交额重复、turnover 时区、违规天数展示、审计 session/嵌套/轮转/裁剪；半截 K 线、回测成交口径、台账拆分/锁待做（安全整改按用户决定暂缓） |
 | S1 | 渲染内核 | `lib/render/*`（宽度/ANSI/主题/Canvas/表格/图表）+ ViewModel；`ths chart`；`analyze/compare/scan/risk/backtest` 接入 | 🟡 基础层+图表+命令接入完成；统一 ViewModel/CSV 覆盖待补 |
-| S2 | 持久化 v2 + 分析底座 | Store v2（锁/版本/迁移/分片）、JSONL 事件流、索引、NAV、`ths stats`、`data verify/backup` | 🟡 实时 JSONL journal、原子写/文件锁/读改写合并/损坏隔离、schema v2、`data verify/backup` 完成；台账/缓存拆分、索引、NAV、`ths stats` 待做 |
+| S2 | 持久化 v2 + 分析底座 | Store v2（锁/版本/迁移/分片）、JSONL 事件流、索引、NAV、`ths stats`、`data verify/backup` | 🟡 实时 JSONL journal、原子写/文件锁/读改写合并/损坏隔离、schema v3、用户状态/ K线拆分（`data/state.json`）、迁移、`data verify/backup` 完成；交易流水 JSONL、索引、NAV、`ths stats` 待做 |
 | S3 | 实时交互 | watch 状态/告警落盘、`ths watch --tui`、详情/告警/帮助页、热键、diff 渲染、`ths replay` | ✅ 2026-10-18 首版（TUI + journal + 跨重启恢复 + replay） |
 | S4 | 分析深化 | M5-1/M5-2/M2-3、基准调整/置信区间/MAE-MFE、纸面交易、walk-forward、HTML 研究报告 | 🟡 `ths report daily/review` HTML/MD/JSON 已落地；其余待做 |
 
