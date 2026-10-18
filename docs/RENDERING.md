@@ -1174,6 +1174,15 @@ daily run 的指标卡/指数 spark、HTML/Markdown 报告。
   移除 kline 嵌套 `startOperation` 对外层操作的覆盖。
 - 测试全量 **440 用例通过**。
 
+### 持久化安全补充 2026-10-18
+
+- 新增 `lib/store/atomic.js`：文件锁（陈旧锁回收）、唯一 tmp、fsync、原子 rename、损坏隔离。
+- `KlineCache` / `DailyStore` 的写路径改为**锁内重新读盘 → 合并 → 原子写回**，
+  多进程并发不再丢更新；长驻实例通过 mtime 感知外部写入。
+- 损坏 JSON 自动重命名为 `.corrupt-<ts>`，不静默覆盖。
+- 新增 `ths data verify`（缓存/快照/经验/JSONL 校验）与 `ths data backup`（递归备份 data/）。
+- 测试全量 **477 用例通过**（含多实例并发合并）。
+
 ### Batch 5 ⬜
 
 - ASCII/高对比打磨、帮助/补全自动生成。
@@ -1192,3 +1201,4 @@ daily run 的指标卡/指数 spark、HTML/Markdown 报告。
 | v1.5 | 2026-10-18 | `report backtest/risk`；组合代码排序稳定；445 测试通过 |
 | v1.6 | 2026-10-18 | `report portfolio`；报告四件套（daily/review/backtest/risk/portfolio）；448 测试通过 |
 | v1.7 | 2026-10-18 | 告警冷却 `--cooldown`；452 测试通过 |
+| v1.8 | 2026-10-18 | 原子写/文件锁/读改写合并/损坏隔离；`data verify/backup`；477 测试通过 |

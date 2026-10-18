@@ -222,6 +222,8 @@ function printHelp() {
                                                  --no-journal 不写 data/realtime 状态/告警/tick
   ths watch --once                              单次体检（脚本可用）[--json 输出结构化结果]
   ths replay [YYYY-MM-DD] [--ticks] [--json]     盘中回放：告警时间线 + tick 摘要（本地 JSONL）
+  ths data verify [--json]                       本地数据校验（缓存/快照/经验/实时 JSONL）
+  ths data backup [--dest DIR]                   递归备份 data/ 到 backups/
   ths risk [--pool watchlist|--codes a,b] [--count N(120)] [--weights A=0.5,B=0.3] [--json]
                                                 组合风控画像：相关矩阵/有效独立标的/
                                                 集中度(HHI)/组合波动/单票ATR%/超重&高相关提示

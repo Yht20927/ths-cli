@@ -112,6 +112,8 @@ ths watch [--pool watchlist|--codes a,b] [--interval N(30s)] [--once]
                               --no-journal 不写 data/realtime 状态/告警/tick
 ths watch --once              单次体检(脚本可用)   [Bridge+本地]
 ths replay [YYYY-MM-DD] [--ticks] [--json]   盘中回放: 告警时间线 + tick 摘要   [本地]
+ths data verify [--json]                    本地数据校验(缓存/快照/经验/JSONL)   [本地]
+ths data backup [--dest DIR]                递归备份 data/ 到 backups/   [本地]
 ths risk [--pool watchlist|--codes a,b] [--count N(120)] [--weights A=0.5,B=0.3] [--json]
                               组合风控画像(相关/独立标的/集中度/波动)   [本地+行情]
 ths help                         帮助
@@ -157,6 +159,8 @@ ths report risk --pool watchlist --format html --out reports/risk.html
 ths report daily --format json | jq .          # 报告模型
 ths replay                                     # 今日告警时间线
 ths replay 2026-10-18 --ticks                  # 告警 + tick 摘要
+ths data verify                                # 校验缓存/快照/经验/JSONL
+ths data backup --dest backups/before-upgrade  # 递归备份 data/
 ```
 
 - 报告数据来自本地快照/台账，不联网；HTML 自带内联 CSS/SVG，可离线打开。
@@ -329,7 +333,7 @@ token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保
 ### 开发
 
 ```bash
-npm test            # vitest(452 用例,含 K 线解析/渲染宽度/TUI/持久化/报告/审计断言)
+npm test            # vitest(477 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```
