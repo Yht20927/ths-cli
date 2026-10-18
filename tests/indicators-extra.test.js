@@ -197,10 +197,10 @@ describe('vwap', () => {
 });
 
 describe('mfi', () => {
-  it('恒定 TP → 无负流 → 100', () => {
+  it('完全平盘（无正负资金流）→ 中性 50', () => {
     const c = Array(30).fill(50), h = Array(30).fill(51), l = Array(30).fill(49), v = Array(30).fill(1000);
     const m = mfi(h, l, c, v, 14);
-    expect(m[m.length - 1]).toBe(100);
+    expect(m[m.length - 1]).toBe(50);
   });
   it('值域 0-100', () => {
     const m = mfi(highs, lows, closes, vols, 14);

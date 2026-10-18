@@ -66,8 +66,10 @@ ths kline <code> [--period day|week|month|quarter|60min|120min]
        [--json|--csv]           获取 K 线
 ths trend <code> [--count N] [--market N] [--json|--csv]   分时数据
 ths turnover [--period minute|day] [--count N] [--json]    大盘成交额
-ths analyze <code> [--period ...] [--count 250] [--market N] [--json] [--compact] [--refresh]
+ths analyze <code> [--period ...] [--count 250] [--market N] [--json] [--compact] [--chart] [--refresh]
                                                      K线技术分析(全指标+形态+支撑压力+评分+估值)
+ths chart <code> [--period day|week|...] [--count N(120)] [--market N] [--json]
+                              终端 K 线图(MA5/MA20 + 成交量)
 ths compare [--codes a,b,c|--pool watchlist] [--json]   跨股横向对比
 ths scan --criterion macd-golden [--pool watchlist|--codes a,b|--universe 关键词]
        [--min-score N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json] [--only-hot]
@@ -95,14 +97,71 @@ ths daily lessons [--json]    经验教训+待确认池建议   [本地]
 ths daily lesson-add "复盘文字" [--category X] [--code X]    手动记一条经验   [本地]
 ths daily snapshot [--date D] [--code X] [--json]   查看历史快照   [本地]
 ths daily apply <Sid> [--yes]   执行池建议(剔除/加入/减仓)   [本地]
+ths report daily|review [--since N] [--min-n N] [--date D]
+       [--format md|html|json] [--out FILE]   静态研究报告(本地快照,不联网)
+ths report backtest <code> --strategy ma-cross|rsi|macd|score|resonance|buy-hold
+       [--period day] [--count 500] [--format md|html|json]   回测报告(权益/回撤/交易)
+ths report risk [--codes a,b|--pool watchlist] [--count 120]
+       [--format md|html|json]               组合风险报告(热力图/单票画像)
+ths report portfolio [--offline] [--format md|html|json]
+                                             持仓报告(市值/浮盈亏/止损状态)
 ths watch [--pool watchlist|--codes a,b] [--interval N(30s)] [--once]
-       [--chase 7] [--drop -5] [--vol 3] [--until HH:MM] [--quiet] [--json]
+       [--chase 7] [--drop -5] [--vol 3] [--cooldown 300] [--until HH:MM] [--quiet] [--json] [--tui] [--no-journal]
                               盘中实时追踪(固化止损/支撑/阈值边沿告警)   [Bridge+本地]
+                              --tui 交互式面板(总览/告警/详情/帮助，需 TTY)
+                              --no-journal 不写 data/realtime 状态/告警/tick
 ths watch --once              单次体检(脚本可用)   [Bridge+本地]
+ths replay [YYYY-MM-DD] [--ticks] [--json]   盘中回放: 告警时间线 + tick 摘要   [本地]
 ths risk [--pool watchlist|--codes a,b] [--count N(120)] [--weights A=0.5,B=0.3] [--json]
                               组合风控画像(相关/独立标的/集中度/波动)   [本地+行情]
 ths help                         帮助
 ```
+
+### 通用渲染/输出选项
+
+以下选项对所有命令生效（可放在命令前或命令后）：
+
+| 参数 | 说明 |
+|---|---|
+| `--format json` / `--json` | 输出原始 JSON（stdout 只有一段合法 JSON） |
+| `--format csv` / `--csv` | 表格类命令输出 CSV（目前 kline/trend 已接入） |
+| `--format text` | 终端文本（默认） |
+| `--no-color` | 关闭 ANSI 颜色 |
+| `--ascii` | 使用 ASCII 边框/符号，适配窄终端/不支持 Unicode 的环境 |
+| `--emoji` | 使用 emoji 状态图标（默认几何符号，宽度更稳定） |
+| `--width N` | 覆盖终端宽度（60/80/100/120/160，表格响应式约束） |
+| `--theme NAME` | `cn`（默认红涨绿跌）/ `intl` / `mono` / `high-contrast` |
+| `--out FILE` | 把本次 stdout 写入文件（诊断仍走 stderr） |
+
+### 盘中 TUI
+
+```bash
+node cli.js watch --tui --interval 15
+```
+
+- `1/2/3/4`：总览 / 告警 / 详情 / 帮助
+- `↑↓` 或 `j/k` 选择，`Enter` 看详情，`g/G` 首/末行
+- `s` 切换排序，`S` 反向；`/` 过滤代码/名称
+- `p` 暂停/恢复，`r` 立即刷新，`q` 退出
+- 详情页复用日 K + MA5/MA20 + 成交量；告警页 `a` 确认
+
+TUI 只做提醒与浏览，不自动下单；`--tui` 与 `--json`/`--once` 互斥，且需要交互式终端。
+
+### 静态报告与盘中回放
+
+```bash
+ths report daily --format html --out reports/daily.html
+ths report review --since 90 --format md --out reports/review.md
+ths report backtest 600519 --strategy score --format html --out reports/bt.html
+ths report risk --pool watchlist --format html --out reports/risk.html
+ths report daily --format json | jq .          # 报告模型
+ths replay                                     # 今日告警时间线
+ths replay 2026-10-18 --ticks                  # 告警 + tick 摘要
+```
+
+- 报告数据来自本地快照/台账，不联网；HTML 自带内联 CSS/SVG，可离线打开。
+- `watch` 默认把状态/告警/tick 写到 `data/realtime/`（JSONL）；`--no-journal` 可关闭。
+- `ths replay` 读取这些 JSONL，用于盘后复盘告警是否及时/是否误报。
 
 > **油猴脚本升级**:`ths quote` 的换手率/量比/PE/PB/市值字段依赖 `scripts/tonghuashun.user.js` v1.1.0;
 > `ths market` / `ths fundflow` 依赖 v1.2.0。
@@ -270,7 +329,7 @@ token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保
 ### 开发
 
 ```bash
-npm test            # vitest(159 用例,含真实 HAR fixture 的 K 线解析断言)
+npm test            # vitest(452 用例,含 K 线解析/渲染宽度/TUI/持久化/报告/审计断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```

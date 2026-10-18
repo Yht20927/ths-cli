@@ -122,6 +122,11 @@ describe('summarizePosition / portfolioSummary', () => {
     expect(s.floatPnl).toBe(0);
     expect(s.price).toBe(1000);
   });
+  it('显式 null 现价不能变成 0（避免 -100%）', () => {
+    const s = summarizePosition(p, { price: null });
+    expect(s.price).toBe(1000);
+    expect(s.floatPct).toBe(0);
+  });
   it('组合汇总', () => {
     const a = summarizePosition(applyTrade(null, { code: 'a', action: 'buy', qty: 10, price: 100 }), { price: 110 });
     const b = summarizePosition(applyTrade(null, { code: 'b', action: 'buy', qty: 10, price: 100 }), { price: 90 });

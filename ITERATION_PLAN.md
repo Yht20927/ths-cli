@@ -118,12 +118,25 @@
 | **M5-1** | **position 环境系数减半** | "不逆大盘"从口号落到**仓位计算**：大盘环境弱（上证/创业板跌破 MA20，或 mood=❄️普跌弱势）时，把按止损额反推的建议仓位 ×0.5（环境系数），输出标注"环境弱，仓位减半：原本 X% → 建议 Y%"；`portfolio add` 建议与 `risk` 组合卷同步打标 | 新 `lib/environment.js`（复用 `ths index` MA20 判定 + realhead mood，带短期缓存防每命令重复拉网）、`lib/commands/position.js`（calc 后乘系数+标注）、`lib/commands/portfolio.js`、`lib/commands/risk.js` | ⬜。**边界**：只改"建议数字"，下单决策仍人工，不违反"不自动下单"克制 |
 | **M5-2** | **大盘因子并入 daily-review 命中率桶** | M2-2 已把指数趋势写进快照 `marketEnv.indices`，但复盘命中率桶没消费它——大盘因子还是"口号"，没被自己数据证实/证伪。新增桶：`indexTrend`（买入时 上证/创业板 站上 vs 跌破 MA20 的 3/5 日命中率对比）、`envResonance`（大盘暖+方向暖+技术共振 命中率），让复盘能回答"我的信号在指数破位时是否系统性变差" | `lib/daily-review.js`（BUCKETS 增 valueOf 读 `s.marketEnv.indices`/`mood`/`direction` + 标签映射）、`lib/commands/daily.js`（透传 indices 到 review 行）、`tests/daily-review.test.js` | ⬜。**冷启动约束**：需积累 ≥`--min-n`(默认5) 个带 `indices` 的交易日后才显示；**旧快照不回填未来指数值**（会引入未来函数） |
 
+### 里程碑 M6 —— 研究工作台：渲染 / 持久化分析 / 实时交互（设计定稿）
+
+> 2026-10-18 用户确认下一阶段重点：数据分析渲染、持久化分析、实时交互。
+> 安全整改按用户决定暂缓；交互形态选 TUI；完整设计见 **[`docs/RENDERING.md`](docs/RENDERING.md)**。
+
+| Slice | 主题 | 核心交付 | 状态 |
+|---|---|---|---|
+| S0 | 止血：可信度 + 数据安全 | watch 阈值接线/状态恢复、复盘桶渲染与样本口径、半截 K 线、RSI/MFI 平盘、持仓空价、成交额重复；台账/缓存拆分、锁、严格写、审计 JSONL | 🟡 已修 watch 阈值/方向桶/启动告警、RSI/MFI 平盘、持仓空价、成交额重复、turnover 时区、违规天数展示、审计 session/嵌套/轮转/裁剪；半截 K 线、回测成交口径、台账拆分/锁待做（安全整改按用户决定暂缓） |
+| S1 | 渲染内核 | `lib/render/*`（宽度/ANSI/主题/Canvas/表格/图表）+ ViewModel；`ths chart`；`analyze/compare/scan/risk/backtest` 接入 | 🟡 基础层+图表+命令接入完成；统一 ViewModel/CSV 覆盖待补 |
+| S2 | 持久化 v2 + 分析底座 | Store v2（锁/版本/迁移/分片）、JSONL 事件流、索引、NAV、`ths stats`、`data verify/backup` | 🟡 实时 JSONL journal 完成；台账/缓存拆分、索引、NAV、`ths stats` 待做 |
+| S3 | 实时交互 | watch 状态/告警落盘、`ths watch --tui`、详情/告警/帮助页、热键、diff 渲染、`ths replay` | ✅ 2026-10-18 首版（TUI + journal + 跨重启恢复 + replay） |
+| S4 | 分析深化 | M5-1/M5-2/M2-3、基准调整/置信区间/MAE-MFE、纸面交易、walk-forward、HTML 研究报告 | 🟡 `ths report daily/review` HTML/MD/JSON 已落地；其余待做 |
+
 ---
 
 ## 四、克制清单（明确不做，防工具膨胀）
 
 - ❌ **不做自动下单/委托** —— 工具只研究不碰资金，保住"研究助手"定位
-- ❌ **不做可视化图表/Web 界面** —— CLI + ASCII 表已够用，加 UI 只增维护不增胜率
+- ✅ **终端图表 + 静态 HTML 报告 + 只读 TUI/本地面板**（2026-10-18 修订，见 `docs/RENDERING.md`）—— 数据分析渲染是下一阶段主线；仍不做托管 Web 服务/多用户界面，保持零新增依赖
 - ❌ **不接多数据源/付费数据** —— 同花顺 Bridge 单一可信源，少一个源少一类对不齐问题
 - ✅ **盯盘告警收敛为"固化日线级阈值"**（2026-09-03 起，M4-1）—— 只对**建仓固化的止损 / 收盘支撑压力 / 涨跌停 / 量比 / 涨幅≥7%** 做**边沿触发**盘中提醒（`ths watch`）；**不生成新买卖信号、不落盘、不自动执行**。"分时级买卖信号 / 逐笔 / Level2 / 秒级"仍不做（盘中噪音反伤纪律的防线保留在"只提醒不决策"上）
 - ❌ **不堆指标/策略数量** —— 回测只做与实战打法对齐的策略

@@ -71,6 +71,8 @@ describe('market 命令层（真实数据形状）', () => {
     expect(ret.market.totalUp).toBe(2353 + 2934);
     expect(ret.market.totalDown).toBe(1012 + 1338);
     expect(ret.market.mood).toContain('普涨');
+    // 创业板是深市子集，成交额不能把 399006 再算一次
+    expect(ret.market.totalAmount).toBe(990371920000 + 1152471300000);
   });
 });
 

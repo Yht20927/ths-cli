@@ -67,6 +67,11 @@ describe('rsi', () => {
     const r = rsi(v, 14);
     expect(r[r.length - 1]).toBeLessThan(10);
   });
+  it('完全平盘 → 中性 50（不是超买 100）', () => {
+    const v = Array(40).fill(100);
+    const r = rsi(v, 14);
+    expect(r[r.length - 1]).toBe(50);
+  });
 });
 
 describe('boll', () => {

@@ -1,7 +1,7 @@
 // tests/watch-engine.test.js — 盘中告警引擎（纯函数，注入 phase/prevState，确定性）
 
 import { describe, it, expect } from 'vitest';
-import { evaluateTick } from '../lib/watch-engine.js';
+import { evaluateTick, filterCooldown } from '../lib/watch-engine.js';
 
 // 参照位构造器：默认全关，只开被测条件，避免多条件同时命中干扰断言
 const L = (over = {}) => ({
@@ -135,5 +135,32 @@ describe('数值强转 / 板块指数', () => {
     const { alerts, state } = run('am', q('881129', { price: 888, pct: 9 }));
     expect(alerts).toHaveLength(0);
     expect(state['881129'].board).toBe(true);
+  });
+});
+
+describe('filterCooldown 告警冷却', () => {
+  const A = { code: '000725', name: '京东方A', kind: 'chase', level: 'warn', at: 1000 };
+  const B = { code: '000725', name: '京东方A', kind: 'vol', level: 'info', at: 1000 };
+  const C = { code: '002185', name: '华天科技', kind: 'chase', level: 'warn', at: 1000 };
+
+  it('首次保留，冷却期内同 code+kind 抑制', () => {
+    const out = filterCooldown([A], [], 1000, 60_000);
+    expect(out).toHaveLength(1);
+    const out2 = filterCooldown([A], [{ ...A, at: 1000 }], 30_000, 60_000);
+    expect(out2).toHaveLength(0);
+  });
+
+  it('超过冷却期恢复', () => {
+    const out = filterCooldown([A], [{ ...A, at: 1000 }], 70_000, 60_000);
+    expect(out).toHaveLength(1);
+  });
+
+  it('不同 kind / 不同 code 不受影响', () => {
+    const out = filterCooldown([A, B, C], [{ ...A, at: 1000 }], 30_000, 60_000);
+    expect(out.map(x => `${x.code}:${x.kind}`)).toEqual(['000725:vol', '002185:chase']);
+  });
+
+  it('cooldown=0 关闭冷却', () => {
+    expect(filterCooldown([A], [{ ...A, at: 1000 }], 1000, 0)).toHaveLength(1);
   });
 });
