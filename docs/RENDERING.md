@@ -1182,8 +1182,10 @@ daily run 的指标卡/指数 spark、HTML/Markdown 报告。
 - 损坏 JSON 自动重命名为 `.corrupt-<ts>`，不静默覆盖。
 - **用户状态拆分**：自选/名称/持仓迁到 `data/state.json`，K线留在 `data/cache/ths.json`；
   旧版 `ths.json` 自动迁移，`scripts/cache.sh` 同步支持 split 布局。
-- 新增 `ths data verify`（缓存/状态/快照/经验/JSONL 校验）与 `ths data backup`（递归备份 data/）。
-- 测试全量 **478 用例通过**（含多实例并发合并与迁移）。
+- **交易流水独立**：`data/ledger/trades.jsonl` append-only；买卖自动写入，清仓/移除持仓后
+  `portfolio history` 仍可查；旧 `positions[].trades` 构造时自动迁移并按 legacy id 去重。
+- 新增 `ths data verify`（缓存/状态/流水/快照/经验/JSONL 校验）与 `ths data backup`（递归备份 data/）。
+- 测试全量 **485 用例通过**（含多实例并发合并、迁移、流水）。
 
 ### Batch 5 ⬜
 
@@ -1205,3 +1207,4 @@ daily run 的指标卡/指数 spark、HTML/Markdown 报告。
 | v1.7 | 2026-10-18 | 告警冷却 `--cooldown`；452 测试通过 |
 | v1.8 | 2026-10-18 | 原子写/文件锁/读改写合并/损坏隔离；`data verify/backup`；477 测试通过 |
 | v1.9 | 2026-10-18 | 用户状态拆分到 `data/state.json`（自选/名称/持仓），旧缓存自动迁移；478 测试通过 |
+| v1.10 | 2026-10-18 | 交易流水 `data/ledger/trades.jsonl` append-only；清仓后历史保留；485 测试通过 |

@@ -268,6 +268,7 @@ ths scan --pool watchlist --only-hot --criterion ma-bull   # 大盘普跌时抑�
 
 K 线数据缓存于 `data/cache/ths.json`(gitignore),避免重复打同花顺接口触发风控。
 自选股/名称/持仓台账独立存于 `data/state.json`,不再随 4MB 级 K 线缓存全量重写。
+交易流水独立 append-only 存于 `data/ledger/trades.jsonl`,清仓/移除持仓后历史仍可查。
 
 - TTL:日/周/月/季 10 分钟,60/120 分钟 1 分钟,可在 `config.json` 的 `cache.ttlMinutes` 覆盖
 - `analyze` / `scan` / `backtest` 默认走缓存,`--refresh` 强制刷新
@@ -336,7 +337,7 @@ token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保
 ### 开发
 
 ```bash
-npm test            # vitest(478 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
+npm test            # vitest(485 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```

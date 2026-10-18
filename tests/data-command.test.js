@@ -34,6 +34,8 @@ function seedValid() {
   fs.writeFileSync(cacheFile.replace(/\.json$/, '.state.json'), JSON.stringify({
     version: 1, watchlist: [{ code: '000725' }], names: {}, positions: [],
   }));
+  fs.writeFileSync(cacheFile.replace(/\.json$/, '.trades.jsonl'),
+    '{"id":"t1","ts":1,"date":"2026-10-18","code":"000725","action":"buy","qty":1,"price":5.79}\n');
   fs.writeFileSync(path.join(dailyDir, 'snapshots', '2026-10-18.json'), JSON.stringify({
     date: '2026-10-18', marketEnv: {}, direction: {}, stocks: { '000725': { code: '000725' } },
   }));
@@ -60,6 +62,7 @@ describe('ths data verify', () => {
     expect(res.errors).toBe(0);
     expect(res.checks.some(c => c.item === 'K线缓存' && c.status === 'ok')).toBe(true);
     expect(res.checks.some(c => c.item === '用户状态' && c.status === 'ok')).toBe(true);
+    expect(res.checks.some(c => c.item === '交易流水' && c.status === 'ok')).toBe(true);
     expect(res.checks.some(c => c.item === '每日快照' && c.status === 'ok')).toBe(true);
     expect(res.checks.some(c => c.item === '实时 JSONL' && c.status === 'ok')).toBe(true);
   });
