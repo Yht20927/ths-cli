@@ -56,7 +56,8 @@ cmd_start() {
   fi
 
   mkdir -p "$ROOT/logs"
-  setsid nohup node "$ROOT/cli.js" watch --interval "$interval" >>"$LOG_FILE" 2>&1 < /dev/null &
+  # --quiet：后台日志只记告警/错误，避免每个 tick 的表格把日志刷爆
+  setsid nohup node "$ROOT/cli.js" watch --interval "$interval" --quiet >>"$LOG_FILE" 2>&1 < /dev/null &
   local pid=$!
   disown "$pid" 2>/dev/null || true
   echo "$pid" > "$PID_FILE"

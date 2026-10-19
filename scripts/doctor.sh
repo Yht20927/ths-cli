@@ -46,11 +46,13 @@ USE_COLOR=0
 if [[ -t 1 ]] && [[ "${NO_COLOR:-}" == "" ]]; then USE_COLOR=1; fi
 c_green=$'\033[32m'; c_red=$'\033[31m'; c_yellow=$'\033[33m'; c_bold=$'\033[1m'; c_dim=$'\033[2m'; c_reset=$'\033[0m'
 
-ok()   { [[ $QUIET -eq 0 ]] && echo "  ${c_green}✓${c_reset} $1"; }
-warn() { [[ $QUIET -eq 0 ]] && echo "  ${c_yellow}⚠${c_reset} $1"; }
-fail() { [[ $QUIET -eq 0 ]] && echo "  ${c_red}✗${c_reset} $1"; }
-detail() { [[ $QUIET -eq 0 ]] && [[ $VERBOSE -eq 1 ]] && echo "      ${c_dim}$1${c_reset}"; }
-hdr()  { [[ $QUIET -eq 0 ]] && echo "" && echo "${c_bold}$1${c_reset}"; }
+# 注意：这些函数在「不输出」时必须显式 return 0，
+# 否则脚本开头的 set -e 会把 false 当成致命错误直接退出。
+ok()   { [[ $QUIET -eq 0 ]] && echo "  ${c_green}✓${c_reset} $1"; return 0; }
+warn() { [[ $QUIET -eq 0 ]] && echo "  ${c_yellow}⚠${c_reset} $1"; return 0; }
+fail() { [[ $QUIET -eq 0 ]] && echo "  ${c_red}✗${c_reset} $1"; return 0; }
+detail() { [[ $QUIET -eq 0 ]] && [[ $VERBOSE -eq 1 ]] && echo "      ${c_dim}$1${c_reset}"; return 0; }
+hdr()  { [[ $QUIET -eq 0 ]] && echo "" && echo "${c_bold}$1${c_reset}"; return 0; }
 
 # node 小工具: 传 JS 表达式，从 config.json 取值（避免 grep 解析 JSON）
 cfg() {

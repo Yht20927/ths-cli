@@ -8,7 +8,7 @@
 // @connect      127.0.0.1:*
 // @connect      localhost
 // @connect      localhost:*
-// @version      1.2.0
+// @version      1.2.1
 // ==/UserScript==
 
 // ═══════════════════════════════════════════════════════════
@@ -262,8 +262,9 @@ window.__ths = {
     return data.data || null;
   },
 
-  // 实时行情快照字段：
-  // 基础 6价/7开/8高/9低/10昨收/13量(股)/19额(元) | 69涨停/70跌停
+  // 实时行情快照字段（multi_last_snapshot）：
+  // 基础 6昨收/7开/8高/9低/10最新价/13量(股)/19额(元) | 69涨停/70跌停
+  // 注意 6/10 与 realhead（7最新价/9昨收）不同源，实测 6=昨收、10=最新价
   // 扩展 199112涨跌幅/264648涨跌额/3153PE/592920PB/3475914总市值/3541450流通市值/1968584换手率/1771976量比
   QUOTE_FIELDS: ['6', '7', '8', '9', '10', '13', '19', '69', '70', '199112', '264648', '3153', '592920', '3475914', '3541450', '1968584', '1771976'],
 
@@ -330,7 +331,7 @@ window.__ths = {
 
   // 大盘指数快照 + 涨跌家数（d.10jqka.com.cn realhead JSONP 接口）
   // 返回 [{ code, name, price, prevClose, open, high, amount, upCount, downCount, flatCount, updateTime }]
-  // 字段都在 items 内: 7最新价 / 8今开 / 9昨收 / 10最高 / 19成交额 /
+  // 字段都在 items 内: 6昨收 / 7今开 / 8最高 / 9最低 / 10最新价 / 19成交额 /
   //                   37上涨家数 / 38下跌家数 / 39平盘家数 / name / updateTime
   market: async function () {
     var codes = ['hs_1A0001', 'hs_399001', 'hs_399006']; // 上证指数/深证成指/创业板指
@@ -344,7 +345,7 @@ window.__ths = {
       out.push({
         code: codes[i].replace('hs_', ''),
         name: it.name,
-        price: it['7'], prevClose: it['9'], open: it['8'], high: it['10'],
+        price: it['10'], prevClose: it['6'], open: it['7'], high: it['8'],
         amount: it['19'], upCount: it['37'], downCount: it['38'], flatCount: it['39'],
         updateTime: it.updateTime,
       });

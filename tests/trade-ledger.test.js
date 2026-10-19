@@ -50,6 +50,34 @@ describe('TradeLedger', () => {
     expect(l.list()[0].source).toBe('legacy');
   });
 
+  it('portfolio 流水已存在时，不从 positions[] 重复迁移', () => {
+    const l = new TradeLedger(file);
+    l.append({
+      code: '600519', action: 'buy', qty: 100, price: 100, fee: 5,
+      date: '2026-10-01', source: 'portfolio',
+    });
+    const positions = [{
+      code: '600519', name: '贵州茅台',
+      trades: [{ action: 'buy', qty: 100, price: 100, fee: 5, date: '2026-10-01T01:00:00.000Z' }],
+    }];
+    expect(l.migrateFromPositions(positions)).toBe(0);
+    expect(l.count()).toBe(1);
+  });
+
+  it('真正的新 legacy 流水仍会迁移（不被内容指纹误伤）', () => {
+    const l = new TradeLedger(file);
+    l.append({ code: '600519', action: 'buy', qty: 100, price: 100, date: '2026-10-01', source: 'portfolio' });
+    const positions = [{
+      code: '600519',
+      trades: [
+        { action: 'buy', qty: 100, price: 100, date: '2026-10-01T01:00:00.000Z' }, // 已存在
+        { action: 'sell', qty: 50, price: 110, date: '2026-10-10T01:00:00.000Z' },  // 新
+      ],
+    }];
+    expect(l.migrateFromPositions(positions)).toBe(1);
+    expect(l.count()).toBe(2);
+  });
+
   it('坏行跳过', () => {
     fs.writeFileSync(file, '{"code":"600519","action":"buy","qty":1,"price":1,"date":"2026-10-18"}\nnot-json\n');
     expect(new TradeLedger(file).count()).toBe(1);

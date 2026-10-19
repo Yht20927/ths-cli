@@ -172,4 +172,21 @@ describe('tiles', () => {
     expect(out).toContain('+63.9%');
     for (const line of out.split('\n')) expect(displayWidth(line)).toBeLessThanOrEqual(80);
   });
+
+  it('4 张卡片按行分组，不交错边框', () => {
+    const out = renderTiles([
+      { label: 'A', value: '1' },
+      { label: 'B', value: '2' },
+      { label: 'C', value: '3' },
+      { label: 'D', value: '4' },
+    ], { width: 80, border: 'ascii' });
+    const lines = out.split('\n');
+    // 第一组的上下边框必须连续出现，第三行才是 C/D 的顶边
+    expect(lines[0]).toContain('A');
+    expect(lines[1]).toContain('1');
+    expect(lines[2]).toMatch(/^\+-+\+\s+\+-+\+$/);
+    expect(lines[3]).toContain('C');
+    expect(lines[4]).toContain('3');
+    expect(lines[5]).toMatch(/^\+-+\+\s+\+-+\+$/);
+  });
 });

@@ -15,8 +15,8 @@
 - **自选股**:本地管理,无需登录,`prices` 实时总览
 - **策略回测**:ma-cross / rsi / macd / **score(综合评分) / resonance(共振)** / buy-hold,输出收益/回撤/胜率/盈亏比/夏普,支持 ATR 止损/滑点/一字板约束/buy-hold 自动对比——可**回测自己的实战打分/共振打法**,不只测简单均线策略
 - **仓位计算**:`ths position` 按"目标止损额 ÷ 止损距离%"反推仓位(SKILL 仓位铁律落地),自动取支撑位与 ATR×N 止损中更远者防扫损,并输出**盈亏比**(目标空间 ÷ 止损空间,压力位自动取,`--target` 可手动指定)
-- **大盘情绪**:`ths market` 三大指数快照 + 涨跌家数 + 市场温度(需油猴 v1.2.0)
-- **资金流**:`ths fundflow` 主力净流入排行(需油猴 v1.2.0)
+- **大盘情绪**:`ths market` 三大指数快照 + 涨跌家数 + 市场温度(Node 直连，油猴兜底)
+- **资金流**:`ths fundflow` 主力净流入排行(Node 直连，油猴兜底)
 - **板块强弱**:`ths sectors` 行业/概念板块涨跌幅+净流入+领涨股排名,板块代码可直接 `ths analyze` 深挖(Node 直连)
 - **行情排行**:`ths rank` 涨跌幅排行(当日/三日/五日)+ 10 种技术形态选股(创新高/连续上涨/持续放量/突破…) (Node 直连)
 - **龙虎榜**:`ths lhb` 营业部席位/机构游资,净额排序(Node 直连)
@@ -74,7 +74,8 @@ ths compare [--codes a,b,c|--pool watchlist] [--json]   跨股横向对比
 ths scan --criterion macd-golden [--pool watchlist|--codes a,b|--universe 关键词]
        [--min-score N] [--oversold N] [--overbought N] [--delay MS] [--refresh] [--json] [--only-hot]
                                                                                        选股扫描(--only-hot 大盘普跌抑制做多)
-ths index [1A0001|399001|399006] [--json]    大盘指数趋势(MA20/支撑压力/近5日)   [Node直连]
+ths index [1A0001|399001|399006|1B0688|1B0680|1B0698|1B0699|1B0685] [--json]
+                              指数趋势(MA20/支撑压力/近5日；1Bxxxx=科创50/科创综指/科创100/科创200/科创芯片)   [Node直连]
 ths watchlist add|remove|list|prices|clear <code> [--name X] [--json]   自选股(含价格总览)
 ths backtest <code> --strategy ma-cross|rsi|macd|score|resonance|buy-hold
        [--fast N] [--slow N] [--score-buy 60] [--score-sell 40] [--score-min 60] [--adx 25]
@@ -82,8 +83,8 @@ ths backtest <code> --strategy ma-cross|rsi|macd|score|resonance|buy-hold
        [--stop-loss N] [--slippage X] [--limit-check] [--json]   策略回测(含实战打分/共振)
 ths position <code> --risk N [--stop X] [--target X] [--atr-mult 2] [--capital N]
        [--price X] [--period day] [--count 250] [--json]   仓位计算(止损额→仓位+盈亏比)
-ths market [--json]    大盘情绪(三大指数+涨跌家数+市场温度)   [油猴 v1.2.0]
-ths fundflow [--top 10] [--codes a,b] [--json]   资金流排行(主力净流入)   [油猴 v1.2.0]
+ths market [--json]    大盘情绪(三大指数+涨跌家数+市场温度)   [Node 直连+油猴兜底]
+ths fundflow [--top 10] [--codes a,b] [--json]   资金流排行(主力净流入)   [Node 直连+油猴兜底]
 ths sectors [--type industry|concept] [--top N] [--sort pct|netIn|amount] [--json]   板块强弱排名   [Node 直连]
 ths rank [--kind zdfph|cxg|cxd|lxsz|lxxd|cxfl|cxsl|xstp|xxtp|ljqs|ljqd] [--top N] [--json]   涨跌幅/技术形态排行   [Node 直连]
 ths lhb [--top N] [--json]   龙虎榜(营业部席位)   [Node 直连]
@@ -109,6 +110,7 @@ ths watch [--pool watchlist|--codes a,b] [--interval N(30s)] [--once]
        [--chase 7] [--drop -5] [--vol 3] [--cooldown 300] [--until HH:MM] [--quiet] [--json] [--tui] [--no-journal]
                               盘中实时追踪(固化止损/支撑/阈值边沿告警)   [Bridge+本地]
                               --tui 交互式面板(总览/告警/详情/帮助，需 TTY)
+                              --quiet 只输出告警（后台/日志友好）
                               --no-journal 不写 data/realtime 状态/告警/tick
 ths watch --once              单次体检(脚本可用)   [Bridge+本地]
 ths replay [YYYY-MM-DD] [--ticks] [--json]   盘中回放: 告警时间线 + tick 摘要   [本地]
@@ -167,9 +169,9 @@ ths data backup --dest backups/before-upgrade  # 递归备份 data/
 - `watch` 默认把状态/告警/tick 写到 `data/realtime/`（JSONL）；`--no-journal` 可关闭。
 - `ths replay` 读取这些 JSONL，用于盘后复盘告警是否及时/是否误报。
 
-> **油猴脚本升级**:`ths quote` 的换手率/量比/PE/PB/市值字段依赖 `scripts/tonghuashun.user.js` v1.1.0;
-> `ths market` / `ths fundflow` 依赖 v1.2.0。
-> 请在浏览器 Tampermonkey 里更新该脚本(或重新拖入安装),并刷新 10jqka 页面。升级前这些功能显示 `-` 或报"油猴脚本需 v1.2.0",其余功能不受影响。
+> **油猴脚本升级**:`ths quote` 的换手率/量比/PE/PB/市值字段依赖 `scripts/tonghuashun.user.js` v1.1.0。
+> `ths market` / `ths fundflow` 已改为 **Node 直连优先，油猴 v1.2.0 仅作兜底**，无需升级脚本也可用。
+> 请在浏览器 Tampermonkey 里更新该脚本(或重新拖入安装),并刷新 10jqka 页面。
 
 示例:
 
@@ -232,6 +234,7 @@ ths watch --interval 30                             # 前台盯盘,盘中破止�
 scripts/watch.sh start 15                           # 后台常驻盯盘(日志 logs/watch.log)
 ths risk --codes 000725,000100                       # 组合相关性/集中度画像(纸面组合)
 ths index                                            # 上证/深成/创业板 MA20 趋势(不逆大盘)
+ths index 1B0688                                     # 科创50 趋势(科创板指数同为 hs_ 体系)
 ths backtest 000725 --strategy resonance --count 300 # 用共振回测自己的打法
 ths scan --pool watchlist --only-hot --criterion ma-bull   # 大盘普跌时抑制做多
 ```
@@ -337,7 +340,7 @@ token 需与油猴脚本 `scripts/tonghuashun.user.js` 里的 `CONFIG.token` 保
 ### 开发
 
 ```bash
-npm test            # vitest(485 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
+npm test            # vitest(502 用例,含 K 线解析/渲染宽度/TUI/持久化/并发/报告/审计断言)
 ./scripts/bridge.sh status    # 查看 server 状态
 ./scripts/bridge.sh stop      # 停止 server
 ```
@@ -350,7 +353,7 @@ npm test            # vitest(485 用例,含 K 线解析/渲染宽度/TUI/持久�
 |---|---|---|
 | `scripts/doctor.sh` | 一键排障:node/config/依赖/Server/油猴版本与 token 一致性/目录可写,输出 ✓/✗ 清单与修复指引 | `./scripts/doctor.sh`（`-q` 静默可脚本化判断,`-v` 详情,`--fix` 自动修） |
 | `scripts/demo.sh` | 全链路冒烟测试:搜索→行情→K线→分时→成交额→分析→对比→扫描→回测,11 步任一步失败即退出非 0 | `./scripts/demo.sh`（`--quick` 6 步,`--codes a,b` 换池） |
-| `scripts/daily.sh` | 大师日报:①大盘成交额 → ②代码池估值 → ③条件扫描 → ④技术深挖 → ⑤横向对比,开盘前一次跑完 | `./scripts/daily.sh`（`--codes` 换池,`--compact`/`--all`,`--scan-criteria` 换条件） |
+| `scripts/daily.sh` | 每日学习回路:①监控+快照+池建议 → ②复盘命中率 → ③经验教训（`--scan` 额外跑选股） | `./scripts/daily.sh`（`--codes` 换池,`--since N`,`--refresh`,`--scan`,`--candidates a,b`,`--min-n N`） |
 | `scripts/cache.sh` | 缓存管理:统计 / 按周期清理 / 自选股+名称导出导入（迁移备份） | `stats` `clean [--period day]` `export --file f` `import --file f` |
 | `scripts/completion.bash` | `ths` 命令/周期/选股条件/回测策略 bash 补全 | `echo "source $(pwd)/scripts/completion.bash" >> ~/.bashrc` |
 

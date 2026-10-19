@@ -1,7 +1,7 @@
 // tests/index-kline.test.js — 大盘指数日 K（解析 + 趋势摘要，纯函数）
 
 import { describe, it, expect } from 'vitest';
-import { parseIndexDailyText, summarizeIndexTrend, fmtDate } from '../lib/index-kline.js';
+import { parseIndexDailyText, summarizeIndexTrend, fmtDate, INDEXES, DEFAULT_INDEX_CODES, idxUrl } from '../lib/index-kline.js';
 
 function toYmd(dt) {
   const s = new Date(dt).toISOString().slice(0, 10).replace(/-/g, '');
@@ -25,6 +25,15 @@ function barsOf(n, step) {
   }
   return out;
 }
+
+describe('指数代码表', () => {
+  it('支持科创板指数，但默认仍只跑三大盘', () => {
+    expect(INDEXES['1B0688'].name).toBe('科创50');
+    expect(INDEXES['1B0680'].name).toBe('科创综指');
+    expect(DEFAULT_INDEX_CODES).toEqual(['1A0001', '399001', '399006']);
+    expect(idxUrl('1B0688')).toContain('/hs_1B0688/');
+  });
+});
 
 describe('fmtDate / parseIndexDailyText', () => {
   it('fmtDate YYYYMMDD → YYYY-MM-DD', () => {
@@ -67,5 +76,30 @@ describe('summarizeIndexTrend', () => {
   it('bar 不足暖机 → null', () => {
     expect(summarizeIndexTrend(barsOf(10, 0.003))).toBeNull();
     expect(summarizeIndexTrend([])).toBeNull();
+  });
+});
+
+describe('盘中占位 K 卫生', () => {
+  it('v6/line 的今日占位 bar（OHLC 空、量 0）被剔除', () => {
+    const src = barsOf(5, 0.001);
+    const text = wrapText(src).replace('"data":"', '"data":"20261019,,,,1358.65,0,,0.000,,,0;');
+    const bars = parseIndexDailyText(text);
+    expect(bars).toHaveLength(5);
+    expect(bars.every(b => b.date !== '2026-10-19')).toBe(true);
+  });
+});
+
+describe('dropFormingIndexBar', () => {
+  it('盘中剔除今日未定型 bar，15:05 后保留', async () => {
+    const { dropFormingIndexBar } = await import('../lib/index-kline.js');
+    const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+    const bars = [
+      { date: '2026-10-16', close: 100 },
+      { date: today, close: 101 },
+    ];
+    const at10 = new Date(`${today}T02:00:00Z`).getTime();  // 北京 10:00
+    const at1506 = new Date(`${today}T07:06:00Z`).getTime(); // 北京 15:06
+    expect(dropFormingIndexBar(bars, at10)).toHaveLength(1);
+    expect(dropFormingIndexBar(bars, at1506)).toHaveLength(2);
   });
 });
